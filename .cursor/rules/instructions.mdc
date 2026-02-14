@@ -1,0 +1,50 @@
+---
+description: Core architecture and best practices for the Weight Gain Tracker (Next.js, module layout).
+globs:
+alwaysApply: true
+---
+
+You are working on the **Weight Gain Tracker** app: a Next.js App Router application that lets users track weight and macros (carbs, protein, fat) over time. The language is TypeScript. The app uses **Supabase** for auth and database only. Use **pnpm** for dependency management. The UI is shadcn-themed with class-based dark mode and is installable as a PWA (e.g. iPhone quick-logging).
+
+# Project context
+
+- **Domains:** `auth` (email + PIN as password), `profiles`, `logs` (daily weight + macros).
+- **Data:** `profiles` table (per user); `log` / `daily_logs` table (one row per user per day). See `docs/data-model.md` and `docs/architecture.md`.
+- **Supabase:** When implementing or changing database schema, RLS, or auth, consult the **current Supabase documentation** at https://supabase.com/docs (Auth, Row Level Security, JavaScript client, type generation).
+- **Docs for LLMs:** Prefer `docs/architecture.md`, `docs/user-stories.md`, and `docs/llms-readme.md` (or root `llms.txt`) for high-level context and boundaries.
+
+# API architecture
+
+- **Routes** (`src/app/api/**/route.ts`): Keep handlers **thin**. Parse request → validate (Zod) → auth (session/cookie for web) → call **one module** (e.g. `@/app/lib/modules/auth`, `@/app/lib/modules/logs`) → return `NextResponse`. No business logic in route files.
+- **Modules** (`src/app/lib/modules/<domain>/`): Domain modules are the **public API**. Each module has an `index.ts` that re-exports or calls services. Routes and other domains must import from **modules** only, not from `@/app/lib/services/` or `@/app/lib/integrations/` when crossing domains.
+- **Services** (`src/app/lib/services/<domain>/`): Implementation layer. Business logic lives here. Modules re-export or call services. Services in domain A must **not** import another domain’s integration directly; use the other domain’s **module** (e.g. `@/app/lib/modules/profiles`).
+- **Integrations** (`src/app/lib/integrations/`): Shared external clients (e.g. Supabase client for server and browser). Used by services of the same domain or re-exported by modules.
+- **Legacy boundary** (`src/lib/`): Do **not** add new imports from `@/lib/` in app backend code. If that folder exists, only migration helpers or existing middleware may use it.
+
+# TypeScript
+
+- Use strict TypeScript. Define explicit return types for public functions where practical.
+- Prefer interfaces or types for data structures and DTOs. Avoid `any` in production code; use generics, unions, or `unknown` with type guards. In test files, `@typescript-eslint/no-explicit-any` may be disabled.
+- Use path alias `@/app/lib/` for app backend code under `src/app/lib/`.
+
+# Testing
+
+- **New API routes and new module actions require a unit test.** Test the **module’s public API** (the function the route calls), with integrations (e.g. Supabase client) mocked.
+- Run `pnpm test --run` and, if present, `pnpm run check:module-boundaries` before committing when touching `src/app/lib/services/` or routes.
+
+# Security and robustness
+
+- Validate input at API boundaries (e.g. Zod). Protect routes that need a logged-in user (session/cookie or Supabase auth).
+- Do not log or expose secrets or full error objects to clients. Use consistent HTTP status codes and safe error messages.
+- In tests, mock the Supabase integration so no real external calls are made (e.g. integration factory throws when `process.env.VITEST === 'true'` or tests provide a mock).
+
+# Frontend (dark mode and UI)
+
+- **Dark mode:** Tailwind `darkMode: "class"`. Semantic CSS variables for light (default) and `.dark`. Apply theme via inline script from cookie before first paint; toggle updates cookie and `document.documentElement.classList`.
+- **Components:** Use semantic Tailwind classes only (`bg-background`, `text-foreground`, `bg-card`, `bg-primary`, `border-border`, `text-muted-foreground`, etc.); use `dark:` only for rare overrides. See `docs/` or the dark-mode schematic in the project plan for the full token list.
+- **PWA:** App should be installable (manifest, icons) and usable on narrow viewports for quick logging from iPhone.
+
+# Code quality and tooling
+
+- Follow existing ESLint and project conventions. Use pnpm for install/scripts.
+- Prefer clear naming and small, focused modules. Document non-obvious behavior or boundaries in code or in `docs/`.
