@@ -98,6 +98,7 @@ function dayBefore(dateStr: string): string {
   return d.toISOString().slice(0, 10);
 }
 
+
 /** Default to current week (Monday–Sunday). */
 function thisWeek(): { from: string; to: string } {
   return weekRange(new Date().toISOString().slice(0, 10));
