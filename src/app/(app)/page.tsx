@@ -22,6 +22,7 @@ import { ArrowBigLeftDash, Beef, CalendarIcon, Croissant, Droplet, Flame, LogIn,
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { PinInput } from "@/components/ui/pin-input";
 import { cn } from "@/lib/utils";
 
 const LAST_LOG_DATE_KEY = "last_log_date";
@@ -130,54 +131,61 @@ export default function HomePage() {
   }
 
   if (!isAuthenticated) {
+    const pinComplete = password.length === 6;
     return (
-      <Card className="max-w-sm">
-        <CardHeader>
-          <CardTitle>Sign in</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Use your email and PIN to sign in.
-          </p>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSignIn} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">PIN</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            {signInError && (
-              <p className="text-sm text-destructive">{signInError}</p>
-            )}
-            <Button type="submit" className="w-full" disabled={signInLoading}>
-              <LogIn className="size-4 shrink-0" aria-hidden />
-              {signInLoading ? "Signing in…" : "Sign in"}
-            </Button>
-            <p className="text-center text-sm text-muted-foreground">
-              No account?{" "}
-              <Link href="/sign-up" className="font-medium text-foreground underline underline-offset-4">
-                Sign up
-              </Link>
+      <div className="flex flex-col items-center justify-center w-full min-h-[60vh] py-8">
+        <Card className="max-w-sm w-full">
+          <CardHeader className="text-center">
+            <CardTitle className="flex items-center justify-center gap-2 text-2xl font-bold tracking-tight sm:text-3xl">
+              <LogIn className="size-8 shrink-0" aria-hidden />
+              Sign in
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Use your email and PIN to sign in.
             </p>
-          </form>
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSignIn} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>PIN (6 digits)</Label>
+                <PinInput
+                  value={password}
+                  onChange={setPassword}
+                  disabled={signInLoading}
+                  aria-label="PIN, 6 digits"
+                />
+              </div>
+              {signInError && (
+                <p className="text-sm text-destructive">{signInError}</p>
+              )}
+              {pinComplete && (
+                <Button type="submit" className="w-full" disabled={signInLoading}>
+                  <LogIn className="size-4 shrink-0" aria-hidden />
+                  {signInLoading ? "Signing in…" : "Sign in"}
+                </Button>
+              )}
+              <p className="text-center text-sm text-muted-foreground">
+                No account?{" "}
+                <Link href="/sign-up" className="font-medium text-foreground underline underline-offset-4">
+                  Sign up
+                </Link>
+              </p>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
