@@ -1,35 +1,21 @@
 "use client";
 
-import { useInitialAuth } from "@/components/auth-provider";
+import { AuthLoadingSkeleton, useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export default function HomePage() {
   const router = useRouter();
-  const initialAuth = useInitialAuth();
-  const [authenticated, setAuthenticated] = useState(initialAuth);
-  const [authResolved, setAuthResolved] = useState(false);
+  const { authResolved, isAuthenticated, setAuth } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/profile", { credentials: "include" })
-      .then((r) => {
-        setAuthenticated(r.ok);
-        setAuthResolved(true);
-      })
-      .catch(() => {
-        setAuthenticated(false);
-        setAuthResolved(true);
-      });
-  }, []);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,13 +33,12 @@ export default function HomePage() {
       setError(data.error ?? "Sign in failed");
       return;
     }
-    setAuthenticated(true);
+    setAuth(true);
     router.refresh();
   };
 
-  // Trust server auth so logged-in users never see sign-in flash; only show sign-in once client has resolved and user is not authenticated
-  const showWelcome = authenticated;
-  const showSignIn = authResolved && !authenticated;
+  const showWelcome = isAuthenticated;
+  const showSignIn = authResolved && !isAuthenticated;
 
   if (showWelcome) {
     return (
@@ -75,11 +60,7 @@ export default function HomePage() {
   }
 
   if (!showSignIn) {
-    return (
-      <div className="flex min-h-[200px] items-center justify-center">
-        <p className="text-muted-foreground">Loading…</p>
-      </div>
-    );
+    return <AuthLoadingSkeleton />;
   }
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useInitialAuth } from "@/components/auth-provider";
+import { AuthLoadingSkeleton, useAuth } from "@/components/auth-provider";
 import { getCookie, setCookie } from "@/app/lib/utils/cookies";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const LAST_LOG_DATE_KEY = "last_log_date";
 
@@ -23,8 +23,7 @@ function parseDateCookie(value: string | null): string | null {
 
 export default function LogPage() {
   const router = useRouter();
-  const initialAuth = useInitialAuth();
-  const [authOk, setAuthOk] = useState(initialAuth);
+  const { authResolved, isAuthenticated } = useAuth();
   const [date, setDate] = useState(() => parseDateCookie(getCookie(LAST_LOG_DATE_KEY)) ?? todayISO());
   const [weight, setWeight] = useState("");
   const [carbs_g, setCarbsG] = useState("");
@@ -32,12 +31,6 @@ export default function LogPage() {
   const [fat_g, setFatG] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "ok" | "error"; text: string } | null>(null);
-
-  useEffect(() => {
-    fetch("/api/profile", { credentials: "include" })
-      .then((r) => setAuthOk(r.ok))
-      .catch(() => setAuthOk(false));
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,7 +59,11 @@ export default function LogPage() {
     }
   };
 
-  if (!authOk) {
+  if (!authResolved) {
+    return <AuthLoadingSkeleton />;
+  }
+
+  if (!isAuthenticated) {
     return (
       <div className="space-y-4">
         <p className="text-muted-foreground">You need to sign in to log.</p>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useInitialAuth } from "@/components/auth-provider";
+import { AuthLoadingSkeleton, useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,15 +18,13 @@ type Profile = {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const initialAuth = useInitialAuth();
+  const { authResolved, isAuthenticated, setAuth } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [authOk, setAuthOk] = useState(initialAuth);
   const [displayName, setDisplayName] = useState("");
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/profile", { credentials: "include" });
-    setAuthOk(res.ok);
     if (res.ok) {
       const data = await res.json();
       setProfile(data);
@@ -35,13 +33,13 @@ export default function ProfilePage() {
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (isAuthenticated) load();
+  }, [isAuthenticated, load]);
 
   const handleSignOut = async () => {
     await fetch("/api/auth/sign-out", { method: "POST", credentials: "include" });
     setProfile(null);
-    setAuthOk(false);
+    setAuth(false);
     router.push("/");
     router.refresh();
   };
@@ -64,7 +62,11 @@ export default function ProfilePage() {
     }
   };
 
-  if (!authOk) {
+  if (!authResolved) {
+    return <AuthLoadingSkeleton />;
+  }
+
+  if (!isAuthenticated) {
     return (
       <div className="space-y-4">
         <p className="text-muted-foreground">You need to sign in to view profile.</p>

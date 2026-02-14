@@ -1,5 +1,6 @@
 "use client";
 
+import { AuthLoadingSkeleton, useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
@@ -24,19 +25,13 @@ function lastMonth(): { from: string; to: string } {
 }
 
 export default function HistoryPage() {
-  const [authOk, setAuthOk] = useState(false);
+  const { authResolved, isAuthenticated } = useAuth();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState(lastMonth());
 
   useEffect(() => {
-    fetch("/api/profile", { credentials: "include" })
-      .then((r) => setAuthOk(r.ok))
-      .catch(() => setAuthOk(false));
-  }, []);
-
-  useEffect(() => {
-    if (!authOk) {
+    if (!isAuthenticated) {
       setLoading(false);
       return;
     }
@@ -49,9 +44,13 @@ export default function HistoryPage() {
       .then(setLogs)
       .catch(() => setLogs([]))
       .finally(() => setLoading(false));
-  }, [authOk, range.from, range.to]);
+  }, [isAuthenticated, range.from, range.to]);
 
-  if (!authOk) {
+  if (!authResolved) {
+    return <AuthLoadingSkeleton />;
+  }
+
+  if (!isAuthenticated) {
     return (
       <div className="space-y-4">
         <p className="text-muted-foreground">You need to sign in to view history.</p>

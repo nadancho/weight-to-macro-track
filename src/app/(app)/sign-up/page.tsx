@@ -1,29 +1,22 @@
 "use client";
 
-import { useInitialAuth } from "@/components/auth-provider";
+import { AuthLoadingSkeleton, useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export default function SignUpPage() {
   const router = useRouter();
-  const initialAuth = useInitialAuth();
-  const [authenticated, setAuthenticated] = useState(initialAuth);
+  const { authResolved, isAuthenticated } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/profile", { credentials: "include" })
-      .then((r) => setAuthenticated(r.ok))
-      .catch(() => setAuthenticated(false));
-  }, []);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +37,11 @@ export default function SignUpPage() {
     setSuccess(true);
   };
 
-  if (authenticated) {
+  if (!authResolved) {
+    return <AuthLoadingSkeleton />;
+  }
+
+  if (isAuthenticated) {
     router.replace("/");
     return (
       <p className="text-muted-foreground">Redirecting…</p>
