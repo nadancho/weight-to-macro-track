@@ -40,6 +40,40 @@ export function setLogsCacheCookie(payload: {
   document.cookie = `${LOGS_CACHE_COOKIE}=${encodeURIComponent(raw)}; ${COOKIE_OPTS}`;
 }
 
+/**
+ * Reads the logs cache cookie and returns the payload if valid.
+ * Returns null if missing, invalid, or not in browser.
+ */
+export function getLogsCache(): {
+  from: string;
+  to: string;
+  logs: { date: string; weight?: number | null; carbs_g?: number | null; protein_g?: number | null; fat_g?: number | null }[];
+} | null {
+  if (typeof document === "undefined") return null;
+  const raw = getCookie(LOGS_CACHE_COOKIE);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as {
+      from?: string;
+      to?: string;
+      logs?: unknown[];
+    };
+    if (
+      typeof parsed?.from !== "string" ||
+      typeof parsed?.to !== "string" ||
+      !Array.isArray(parsed.logs)
+    )
+      return null;
+    return {
+      from: parsed.from,
+      to: parsed.to,
+      logs: parsed.logs as { date: string; weight?: number | null; carbs_g?: number | null; protein_g?: number | null; fat_g?: number | null }[],
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** Clears the logs cache so the next fetch is fresh. Call after POST /api/logs. */
 export function clearLogsCacheCookie(): void {
   if (typeof document === "undefined") return;

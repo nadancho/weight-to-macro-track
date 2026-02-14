@@ -78,6 +78,40 @@ export default function HomePage() {
     };
   }, [date]);
 
+  // Load existing log for selected date from Supabase via GET; prefill form for upsert
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    fetch(`/api/logs?from=${date}&to=${date}`, { credentials: "include", cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((logs: { weight?: number | null; carbs_g?: number | null; protein_g?: number | null; fat_g?: number | null }[]) => {
+        if (cancelled) return;
+        const log = logs[0];
+        if (log) {
+          setWeight(log.weight != null ? String(log.weight) : "");
+          setCarbsG(log.carbs_g != null ? String(log.carbs_g) : "");
+          setProteinG(log.protein_g != null ? String(log.protein_g) : "");
+          setFatG(log.fat_g != null ? String(log.fat_g) : "");
+        } else {
+          setWeight("");
+          setCarbsG("");
+          setProteinG("");
+          setFatG("");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setWeight("");
+          setCarbsG("");
+          setProteinG("");
+          setFatG("");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, date]);
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setSignInError("");
