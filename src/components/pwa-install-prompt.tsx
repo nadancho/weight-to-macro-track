@@ -66,9 +66,14 @@ export function PwaInstallPrompt() {
       )}
     >
       <Smartphone className="size-5 shrink-0 text-muted-foreground" aria-hidden />
-      <p className="min-w-0 flex-1 text-sm text-foreground">
-        Add to Home Screen for quick logging from your phone.
-      </p>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-foreground">
+          Add to Home Screen for quick logging
+        </p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Share (iOS) or browser menu (Android) → Add to Home Screen
+        </p>
+      </div>
       <button
         type="button"
         onClick={dismiss}

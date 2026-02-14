@@ -1,4 +1,5 @@
 import { AuthProvider } from "@/components/auth-provider";
+import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { History, Home, PenLine, User } from "lucide-react";
 import Link from "next/link";
 import { getSession } from "@/app/lib/modules/auth";
@@ -46,6 +47,7 @@ export default async function AppLayout({
         </nav>
       </header>
       <main className="mx-auto max-w-4xl px-4 py-6">{children}</main>
+      <PwaInstallPrompt />
     </div>
     </AuthProvider>
   );
