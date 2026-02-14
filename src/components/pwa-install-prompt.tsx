@@ -71,7 +71,7 @@ export function PwaInstallPrompt() {
           Add to Home Screen for quick logging
         </p>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Share (iOS) or browser menu (Android) → Add to Home Screen
+          iOS: Share → scroll or tap More to find Add to Home Screen. Android: menu → Add to Home Screen
         </p>
       </div>
       <button
