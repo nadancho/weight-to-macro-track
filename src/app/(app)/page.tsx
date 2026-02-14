@@ -318,15 +318,22 @@ export default function HomePage() {
                     </span>
                   )}
                 </button>
-                <Input
-                  id="weight"
-                  type="number"
-                  step="0.1"
-                  placeholder="e.g. 154"
-                  value={weight}
-                  onChange={(e) => setWeight(e.target.value)}
-                  className="min-h-[44px] flex-1 text-base"
-                />
+                <div className="relative flex-1">
+                  <Input
+                    id="weight"
+                    type="number"
+                    step="0.1"
+                    placeholder="e.g. 154"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    className={cn("min-h-[44px] text-base", weight && "pr-10")}
+                  />
+                  {weight ? (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                      lbs
+                    </span>
+                  ) : null}
+                </div>
               </div>
             </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -338,14 +345,21 @@ export default function HomePage() {
                 <Croissant className="size-4 shrink-0 text-macro-carbs" aria-hidden />
                 Carbs (g)
               </Label>
-              <Input
-                id="carbs"
-                type="number"
-                step="1"
-                value={carbs_g}
-                onChange={(e) => setCarbsG(e.target.value)}
-                className="min-h-[44px] text-base"
-              />
+              <div className="relative">
+                <Input
+                  id="carbs"
+                  type="number"
+                  step="1"
+                  value={carbs_g}
+                  onChange={(e) => setCarbsG(e.target.value)}
+                  className={cn("min-h-[44px] text-base", carbs_g && "pr-8")}
+                />
+                {carbs_g ? (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                    g
+                  </span>
+                ) : null}
+              </div>
             </div>
             <div className="space-y-2">
               <Label
@@ -355,14 +369,21 @@ export default function HomePage() {
                 <Beef className="size-4 shrink-0 text-macro-protein" aria-hidden />
                 Protein (g)
               </Label>
-              <Input
-                id="protein"
-                type="number"
-                step="1"
-                value={protein_g}
-                onChange={(e) => setProteinG(e.target.value)}
-                className="min-h-[44px] text-base"
-              />
+              <div className="relative">
+                <Input
+                  id="protein"
+                  type="number"
+                  step="1"
+                  value={protein_g}
+                  onChange={(e) => setProteinG(e.target.value)}
+                  className={cn("min-h-[44px] text-base", protein_g && "pr-8")}
+                />
+                {protein_g ? (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                    g
+                  </span>
+                ) : null}
+              </div>
             </div>
             <div className="space-y-2">
               <Label
@@ -372,14 +393,21 @@ export default function HomePage() {
                 <Droplet className="size-4 shrink-0 text-macro-fat" aria-hidden />
                 Fat (g)
               </Label>
-              <Input
-                id="fat"
-                type="number"
-                step="1"
-                value={fat_g}
-                onChange={(e) => setFatG(e.target.value)}
-                className="min-h-[44px] text-base"
-              />
+              <div className="relative">
+                <Input
+                  id="fat"
+                  type="number"
+                  step="1"
+                  value={fat_g}
+                  onChange={(e) => setFatG(e.target.value)}
+                  className={cn("min-h-[44px] text-base", fat_g && "pr-8")}
+                />
+                {fat_g ? (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                    g
+                  </span>
+                ) : null}
+              </div>
             </div>
           </div>
           <p className="text-sm text-muted-foreground flex items-center gap-1.5">
