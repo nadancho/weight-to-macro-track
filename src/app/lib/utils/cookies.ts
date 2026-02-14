@@ -8,6 +8,9 @@ const COOKIE_OPTS = "path=/; max-age=31536000; SameSite=Lax";
 /** Cookie key for cached logs payload (range + logs). Invalidated on log POST. */
 export const LOGS_CACHE_COOKIE = "logs_cache";
 
+/** Cookie key for history table aggregate column: "total" | "average". */
+export const HISTORY_AGGREGATE_COOKIE = "history_aggregate";
+
 /** Max cookie value size (~4KB limit); stay under to avoid truncation. */
 const LOGS_CACHE_MAX_BYTES = 3500;
 

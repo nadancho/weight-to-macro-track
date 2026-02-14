@@ -25,6 +25,19 @@
     --radius-lg: 1rem;
     --radius-md: calc(1rem - 2px);
     --radius-sm: calc(1rem - 4px);
+    /* Macro nutrient colors (text + slightly darker accent for hover/editable) */
+    --macro-protein: #e9967a;
+    --macro-protein-accent: #c97d5f;
+    --macro-carbs: #849b84;
+    --macro-carbs-accent: #6d7f6d;
+    --macro-fat: #a9a444;
+    --macro-fat-accent: #8f8a38;
+    /* Chart series (history page: weight, calories, weight delta) */
+    --chart-1: 217 91% 60%;
+    --chart-2: 25 95% 53%;
+    --chart-3: 142 71% 45%;
+    --chart-4: oklch(0.828 0.189 84.429);
+    --chart-5: oklch(0.769 0.188 70.08);
   }
 
   /* Instagram-inspired dark: dark gray background, light text/icons */
@@ -47,6 +60,19 @@
     --border: 0 0% 15%;
     --input: 0 0% 15%;
     --ring: 210 14% 52%;
+    /* Macro nutrient colors (dark mode) */
+    --macro-protein: #e9967a;
+    --macro-protein-accent: #c97d5f;
+    --macro-carbs: #849b84;
+    --macro-carbs-accent: #6d7f6d;
+    --macro-fat: #a9a444;
+    --macro-fat-accent: #8f8a38;
+    /* Chart series (dark mode) */
+    --chart-1: 217 91% 65%;
+    --chart-2: 25 95% 58%;
+    --chart-3: 142 71% 50%;
+    --chart-4: oklch(0.627 0.265 303.9);
+    --chart-5: oklch(0.645 0.246 16.439);
   }
 
   /* Homogeneous inputs: hide native number spinners so they match text/date inputs */
@@ -58,6 +84,17 @@
   input[type="number"] {
     -moz-appearance: textfield;
     appearance: textfield;
+  }
+
+  @keyframes ripple {
+    from {
+      transform: translate(-50%, -50%) scale(0);
+      opacity: 0.35;
+    }
+    to {
+      transform: translate(-50%, -50%) scale(4);
+      opacity: 0;
+    }
   }
 
   * {

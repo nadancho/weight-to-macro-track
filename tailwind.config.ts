@@ -39,6 +39,14 @@ const config: Config = {
           DEFAULT: "hsl(var(--card, 0 0% 100%))",
           foreground: "hsl(var(--card-foreground, 222 47% 11%))",
         },
+        macro: {
+          protein: "var(--macro-protein)",
+          "protein-accent": "var(--macro-protein-accent)",
+          carbs: "var(--macro-carbs)",
+          "carbs-accent": "var(--macro-carbs-accent)",
+          fat: "var(--macro-fat)",
+          "fat-accent": "var(--macro-fat-accent)",
+        },
       },
       borderRadius: {
         lg: "var(--radius-lg, 0.5rem)",
