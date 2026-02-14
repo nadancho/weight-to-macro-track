@@ -12,7 +12,7 @@ You are working on the **Weight Gain Tracker** app: a Next.js App Router applica
 - **Domains:** `auth` (email + PIN as password), `profiles`, `logs` (daily weight + macros).
 - **Data:** `profiles` table (per user); `log` / `daily_logs` table (one row per user per day). See `docs/data-model.md` and `docs/architecture.md`.
 - **Supabase:** When implementing or changing database schema, RLS, or auth, consult the **current Supabase documentation** at https://supabase.com/docs (Auth, Row Level Security, JavaScript client, type generation).
-- **Docs for LLMs:** Prefer `docs/architecture.md`, `docs/user-stories.md`, and `docs/llms-readme.md` (or root `llms.txt`) for high-level context and boundaries.
+- **Docs for LLMs:** Prefer `docs/architecture.md`, `docs/user-stories/` (or `docs/user-stories.md`), and `docs/llms-readme.md` (or root `llms.txt`) for high-level context and boundaries.
 
 # API architecture
 

@@ -12,8 +12,8 @@ Documentation for UI, theme, and component decisions.
 
 ## Caching and cookies
 
-- **GET APIs:** `GET /api/profile` and `GET /api/logs` send `Cache-Control: private, max-age=60` so the browser can cache responses briefly for faster repeat loads.
-- **UX cookies:** Non-sensitive preferences (e.g. last log date) are stored in cookies via `src/app/lib/utils/cookies.ts` with `path=/`, `max-age=1 year`, `SameSite=Lax`. Auth stays in Supabase session cookies only.
+- **GET APIs:** `GET /api/profile` sends `Cache-Control: private, max-age=60`. `GET /api/logs` sends `Cache-Control: private, max-age=31536000` (1 year) because logs only change when the user edits; the client invalidates on POST.
+- **UX cookies:** Non-sensitive preferences (e.g. last log date) and the **logs cache** (`logs_cache`: last-fetched range + logs for instant History load) use `src/app/lib/utils/cookies.ts` with `path=/`, `max-age=1 year`, `SameSite=Lax`. The logs cache is cleared after each log create/update so the next History fetch is fresh. Auth stays in Supabase session cookies only.
 
 ## Mobile
 

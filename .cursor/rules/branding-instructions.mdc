@@ -1,0 +1,46 @@
+---
+description: Branding and theme convention for weight and macros (colors, accents, icons).
+globs:
+alwaysApply: false
+---
+
+# Branding: macro colors and icons
+
+Use this theme convention everywhere weight and macros are represented (History table, Log page, any future screens).
+
+## Colors (global level)
+
+Define in `src/app/globals.css` as CSS variables so light and dark mode can share or override:
+
+| Nutrient | Text color | Accent (slightly darker) | CSS variable |
+|----------|------------|---------------------------|--------------|
+| Protein  | `#E9967A`  | Slightly darker variant   | `--macro-protein` / `--macro-protein-accent` |
+| Carbs    | `#373D3F`  | Slightly darker variant   | `--macro-carbs` / `--macro-carbs-accent` |
+| Fats     | `#A9A444`  | Slightly darker variant   | `--macro-fat` / `--macro-fat-accent` |
+
+- **Text color:** Use the variable for label and value text (e.g. `color: var(--macro-protein)`).
+- **Accent:** Use the accent variable for hover/editable backgrounds and other “highlight” gestures (e.g. `background-color: var(--macro-protein-accent)`).
+- In **dark mode** (`.dark`), reuse or tune these values for contrast (e.g. lighter carbs color if `#373D3F` is too dark on the background).
+
+## Icons (Lucide)
+
+Use these **exact** icons from `lucide-react` for consistent representation:
+
+| Concept  | Lucide icon   | Import name  |
+|----------|----------------|--------------|
+| Weight   | scale          | `Scale`      |
+| Protein  | beef           | `Beef`       |
+| Carbs    | croissant      | `Croissant`  |
+| Fats     | droplet        | `Droplet`    |
+
+- Render the icon next to the label (e.g. first column of each row in History, or beside inputs on the Log page).
+- **Weight:** icon uses default foreground color.
+- **Protein / Carbs / Fats:** icon color matches the row’s macro color (e.g. `var(--macro-protein)`).
+- Size: align with surrounding text; in History macro rows use **75%** font size, so icon size ~75% (e.g. `size-3.5`).
+
+## Hierarchy in History
+
+- **Weight** and **Calories:** default text size and default (foreground) color.
+- **Protein, Carbs, Fat rows:** 75% font size, row-specific text color and accent (for hover/editable cells), plus the icon in the label cell.
+
+Keep this convention consistent across the app so the same colors and icons always represent the same concepts.

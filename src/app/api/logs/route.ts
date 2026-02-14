@@ -35,7 +35,7 @@ export async function GET(request: Request) {
   const logs = await getLogsByDateRange(from, to);
   return NextResponse.json(logs, {
     headers: {
-      "Cache-Control": "private, max-age=60",
+      "Cache-Control": "private, max-age=31536000",
     },
   });
 }

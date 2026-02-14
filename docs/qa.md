@@ -10,7 +10,7 @@ Checklist of planned work. When an item is done, move it to "Bugs fixed" or "Des
 
 - [x] **1. Instagram-like dark theme and frontend docs** – Theme tokens in `globals.css`, nav icons (lucide), `docs/frontend/` (README, theme.md).
 - [x] **2. Fix auth flash** – Server-side initial auth in (app) layout via `AuthProvider` and `useInitialAuth()`; no sign-in form on first paint.
-- [x] **3. Caching and cookie-backed UX** – `Cache-Control: private, max-age=60` on GET profile/logs; `last_log_date` cookie on log page.
+- [x] **3. Caching and cookie-backed UX** – `Cache-Control: private, max-age=60` on GET profile; `Cache-Control: private, max-age=31536000` on GET logs (logs only change on self-edit). `last_log_date` cookie on log page; `logs_cache` cookie for instant history (range + logs), cleared on log POST.
 - [x] **4. Sign-up user story** – `POST /api/auth/sign-up`, auth module `signUp`, `/sign-up` page, link from home.
 - [x] **5. Session persistence** – Documented in `docs/supabase.md`; middleware + cookies, no extra app flag.
 - [x] **6. Mobile-optimized log** – Responsive form (grid-cols-1 sm:grid-cols-3), touch targets (min-h-[44px]), text-base; nav icons only on small screens. History not optimized for mobile yet.

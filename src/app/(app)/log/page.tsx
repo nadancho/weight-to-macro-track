@@ -1,15 +1,28 @@
 "use client";
 
 import { AuthLoadingSkeleton, useAuth } from "@/components/auth-provider";
-import { getCookie, setCookie } from "@/app/lib/utils/cookies";
+import { macrosToCalories } from "@/app/lib/utils/calories";
+import {
+  getCookie,
+  setCookie,
+  clearLogsCacheCookie,
+} from "@/app/lib/utils/cookies";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogIn, Save } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { format } from "date-fns";
+import { CalendarIcon, LogIn, Save } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 const LAST_LOG_DATE_KEY = "last_log_date";
 
@@ -26,6 +39,7 @@ export default function LogPage() {
   const router = useRouter();
   const { authResolved, isAuthenticated } = useAuth();
   const [date, setDate] = useState(() => parseDateCookie(getCookie(LAST_LOG_DATE_KEY)) ?? todayISO());
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [weight, setWeight] = useState("");
   const [carbs_g, setCarbsG] = useState("");
   const [protein_g, setProteinG] = useState("");
@@ -52,6 +66,7 @@ export default function LogPage() {
     setSaving(false);
     if (res.ok) {
       setCookie(LAST_LOG_DATE_KEY, date);
+      clearLogsCacheCookie();
       setMessage({ type: "ok", text: "Saved." });
       router.refresh();
     } else {
@@ -90,18 +105,42 @@ export default function LogPage() {
         <form onSubmit={handleSubmit} className="space-y-4 text-base">
           <div className="space-y-2">
             <Label htmlFor="date">Date</Label>
-            <Input
-              id="date"
-              type="date"
-              value={date}
-              onChange={(e) => {
-                const next = e.target.value;
-                setDate(next);
-                setCookie(LAST_LOG_DATE_KEY, next);
-              }}
-              required
-              className="min-h-[44px] text-base"
-            />
+            <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  id="date"
+                  variant="outline"
+                  className={cn(
+                    "w-full min-h-[44px] justify-start text-left font-normal text-base",
+                    !date && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 size-4 shrink-0" aria-hidden />
+                  {date ? format(new Date(date + "T12:00:00"), "PPP") : "Pick a date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-auto p-0 border-border"
+                align="center"
+                side="bottom"
+                sideOffset={8}
+              >
+                <div className="p-2">
+                  <Calendar
+                  mode="single"
+                  selected={date ? new Date(date + "T12:00:00") : undefined}
+                  onSelect={(selected) => {
+                    if (!selected) return;
+                    const next = selected.toISOString().slice(0, 10);
+                    setDate(next);
+                    setCookie(LAST_LOG_DATE_KEY, next);
+                    setDatePickerOpen(false);
+                  }}
+                  initialFocus
+                  />
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
           <div className="space-y-2">
             <Label htmlFor="weight">Weight (kg)</Label>
@@ -150,6 +189,14 @@ export default function LogPage() {
               />
             </div>
           </div>
+          <p className="text-sm text-muted-foreground">
+            Calories:{" "}
+            {macrosToCalories(
+              carbs_g ? Number(carbs_g) : null,
+              protein_g ? Number(protein_g) : null,
+              fat_g ? Number(fat_g) : null
+            )}
+          </p>
           {message && (
             <p className={message.type === "ok" ? "text-sm text-green-600 dark:text-green-400" : "text-sm text-destructive"}>
               {message.text}
