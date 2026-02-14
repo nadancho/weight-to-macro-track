@@ -1,6 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+const PROTECTED_PATHS = ["/log", "/history", "/profile"];
+const AUTH_ONLY_PATHS = ["/sign-up"];
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request,
@@ -31,6 +34,20 @@ export async function middleware(request: NextRequest) {
 
   // Refresh session and write updated cookies to response
   await supabase.auth.getClaims();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const path = request.nextUrl.pathname;
+  const isProtected = PROTECTED_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
+  const isAuthOnly = AUTH_ONLY_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
+
+  if (isProtected && !session) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+  if (isAuthOnly && session) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
 
   return response;
 }

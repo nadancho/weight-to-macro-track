@@ -13,6 +13,7 @@ export default function HomePage() {
   const router = useRouter();
   const initialAuth = useInitialAuth();
   const [authenticated, setAuthenticated] = useState(initialAuth);
+  const [authResolved, setAuthResolved] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,8 +21,14 @@ export default function HomePage() {
 
   useEffect(() => {
     fetch("/api/profile", { credentials: "include" })
-      .then((r) => setAuthenticated(r.ok))
-      .catch(() => setAuthenticated(false));
+      .then((r) => {
+        setAuthenticated(r.ok);
+        setAuthResolved(true);
+      })
+      .catch(() => {
+        setAuthenticated(false);
+        setAuthResolved(true);
+      });
   }, []);
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -44,7 +51,11 @@ export default function HomePage() {
     router.refresh();
   };
 
-  if (authenticated) {
+  // Trust server auth so logged-in users never see sign-in flash; only show sign-in once client has resolved and user is not authenticated
+  const showWelcome = authenticated;
+  const showSignIn = authResolved && !authenticated;
+
+  if (showWelcome) {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Welcome</h1>
@@ -59,6 +70,14 @@ export default function HomePage() {
             <Link href="/history">View history</Link>
           </Button>
         </div>
+      </div>
+    );
+  }
+
+  if (!showSignIn) {
+    return (
+      <div className="flex min-h-[200px] items-center justify-center">
+        <p className="text-muted-foreground">Loading…</p>
       </div>
     );
   }
