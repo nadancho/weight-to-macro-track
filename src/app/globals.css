@@ -26,23 +26,24 @@
     --radius-sm: calc(1rem - 4px);
   }
 
+  /* Instagram-inspired dark: dark gray background, light text/icons */
   .dark {
-    --background: 240 40% 5%;
-    --foreground: 210 20% 98%;
-    --card: 240 35% 8%;
-    --card-foreground: 210 20% 98%;
+    --background: 0 0% 7%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 98%;
     --primary: 245 82% 67%;
-    --primary-foreground: 240 40% 5%;
-    --secondary: 240 25% 15%;
-    --secondary-foreground: 210 20% 98%;
-    --muted: 240 25% 12%;
-    --muted-foreground: 240 10% 60%;
-    --accent: 240 25% 15%;
-    --accent-foreground: 210 20% 98%;
+    --primary-foreground: 0 0% 7%;
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 0 0% 14%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 50.6%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 240 25% 15%;
-    --input: 240 25% 15%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
     --ring: 245 82% 67%;
   }
 

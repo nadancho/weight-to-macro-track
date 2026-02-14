@@ -10,34 +10,34 @@ todos:
     status: completed
   - id: step-3-dark-mode
     content: "Step 3: Dark mode (class, CSS vars, theme script, toggle)"
-    status: in_progress
+    status: completed
   - id: step-4-env-supabase-client
     content: "Step 4: .env.example, Supabase integration (client) in lib/integrations"
-    status: pending
+    status: completed
   - id: step-5-db-tables-rls
     content: "Step 5: Supabase tables (profiles, daily_logs) and RLS; generate types"
-    status: pending
+    status: completed
   - id: step-6-auth-module
     content: "Step 6: Auth module (service + module + thin routes sign-in/sign-out)"
-    status: pending
+    status: completed
   - id: step-7-profiles-module
     content: "Step 7: Profiles module (service + module + thin route(s))"
-    status: pending
+    status: completed
   - id: step-8-logs-module
     content: "Step 8: Logs module (service + module + thin routes)"
-    status: pending
+    status: completed
   - id: step-9-ui-pages
     content: "Step 9: UI – layout, Log page, History page, Profile/settings"
-    status: pending
+    status: completed
   - id: step-10-pwa
     content: "Step 10: PWA manifest and icons"
-    status: pending
+    status: completed
   - id: step-11-docs
     content: "Step 11: docs/ folder (architecture, user-stories, data-model, supabase, llms-readme)"
-    status: pending
+    status: completed
   - id: step-12-tests
     content: "Step 12: Vitest setup and module tests (auth, logs); optional check-module-boundaries"
-    status: pending
+    status: completed
 isProject: false
 ---
 

@@ -8,6 +8,7 @@ You are working on the **Weight Gain Tracker** app: a Next.js App Router applica
 
 # Project context
 
+- **Current year:** The year is 2026; assume all "modern," "current," or "latest" references (e.g. docs, APIs, tooling) refer to 2026.
 - **Domains:** `auth` (email + PIN as password), `profiles`, `logs` (daily weight + macros).
 - **Data:** `profiles` table (per user); `log` / `daily_logs` table (one row per user per day). See `docs/data-model.md` and `docs/architecture.md`.
 - **Supabase:** When implementing or changing database schema, RLS, or auth, consult the **current Supabase documentation** at https://supabase.com/docs (Auth, Row Level Security, JavaScript client, type generation).
@@ -48,3 +49,15 @@ You are working on the **Weight Gain Tracker** app: a Next.js App Router applica
 
 - Follow existing ESLint and project conventions. Use pnpm for install/scripts.
 - Prefer clear naming and small, focused modules. Document non-obvious behavior or boundaries in code or in `docs/`.
+
+# Context
+- The model's training has a cutoff date, so the "current date" it assumes may be wrong. Rely on dates supplied in context (e.g. by the user or system); do not assert the current date as fact. When the current date is needed (e.g. for version advice or time-sensitive logic), use the internet or available tools to verify it.
+
+# AI Code Generation Conventions
+- Prefer project tools (read file, search, apply patch) over raw shell commands when the task can be done with them; use shell only when necessary (e.g. running tests, installs).
+- After making changes, suggest or run verification steps in a sandbox (e.g. `pnpm test`, `pnpm lint`, `pnpm exec tsc --noEmit`) so the author can confirm nothing is broken.
+- Consider edge cases and document assumptions or limitations in code comments where non-obvious.
+- Prefer referencing existing project files for patterns (e.g. "follow the style in `src/services/...`) rather than inventing new patterns.
+- Use guard clauses and early returns for error handling; avoid deep nesting in conditionals.
+- Use consistent naming: kebab-case for directories and files, camelCase for functions and variables, PascalCase for types and classes.
+- Flag or avoid deprecated APIs and suggest current alternatives when relevant.
