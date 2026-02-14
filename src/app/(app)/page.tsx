@@ -131,7 +131,8 @@ export default function HomePage() {
   }
 
   if (!isAuthenticated) {
-    const pinComplete = password.length === 6;
+    const signInPinLength = 6;
+    const pinComplete = password.length === signInPinLength;
     return (
       <div className="flex flex-col items-center justify-center w-full min-h-[60vh] py-8">
         <Card className="max-w-sm w-full">
@@ -159,12 +160,13 @@ export default function HomePage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>PIN (6 digits)</Label>
+                <Label>PIN ({signInPinLength} digits)</Label>
                 <PinInput
                   value={password}
                   onChange={setPassword}
                   disabled={signInLoading}
-                  aria-label="PIN, 6 digits"
+                  length={signInPinLength}
+                  aria-label={`PIN, ${signInPinLength} digits`}
                 />
               </div>
               {signInError && (

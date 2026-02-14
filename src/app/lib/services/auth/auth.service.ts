@@ -11,6 +11,11 @@ export interface SignUpResult {
   error?: string;
 }
 
+export interface UpdatePasswordResult {
+  success: boolean;
+  error?: string;
+}
+
 export async function signUp(
   email: string,
   password: string
@@ -55,6 +60,25 @@ export async function getSession() {
     data: { session },
   } = await supabase.auth.getSession();
   return session;
+}
+
+/** Updates the current user's password. Requires an active session. */
+export async function updatePassword(
+  newPassword: string
+): Promise<UpdatePasswordResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: sessionError,
+  } = await supabase.auth.getUser();
+  if (sessionError || !user) {
+    return { success: false, error: sessionError?.message ?? "Not authenticated" };
+  }
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) {
+    return { success: false, error: error.message };
+  }
+  return { success: true };
 }
 
 async function ensureProfile(

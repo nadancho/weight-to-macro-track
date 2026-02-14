@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { signIn, signOut, signUp, getSession } from "./index";
+import { signIn, signOut, signUp, getSession, updatePassword } from "./index";
 
 const mockSignInWithPassword = vi.fn();
 const mockSignUp = vi.fn();
 const mockSignOut = vi.fn();
 const mockGetSession = vi.fn();
+const mockGetUser = vi.fn();
+const mockUpdateUser = vi.fn();
 const mockFrom = vi.fn();
 
 vi.mock("@/app/lib/integrations/supabase/server", () => ({
@@ -15,6 +17,8 @@ vi.mock("@/app/lib/integrations/supabase/server", () => ({
         signUp: mockSignUp,
         signOut: mockSignOut,
         getSession: mockGetSession,
+        getUser: mockGetUser,
+        updateUser: mockUpdateUser,
       },
       from: mockFrom,
     })
@@ -102,6 +106,44 @@ describe("auth module", () => {
       mockGetSession.mockResolvedValue({ data: { session: null } });
       const result = await getSession();
       expect(result).toBeNull();
+    });
+  });
+
+  describe("updatePassword", () => {
+    it("returns success when updateUser succeeds", async () => {
+      mockGetUser.mockResolvedValue({
+        data: { user: { id: "user-1" } },
+        error: null,
+      });
+      mockUpdateUser.mockResolvedValue({ data: { user: {} }, error: null });
+      const result = await updatePassword("newpin6");
+      expect(result.success).toBe(true);
+      expect(mockUpdateUser).toHaveBeenCalledWith({ password: "newpin6" });
+    });
+
+    it("returns failure when not authenticated", async () => {
+      mockGetUser.mockResolvedValue({
+        data: { user: null },
+        error: { message: "Not authenticated" },
+      });
+      const result = await updatePassword("newpin6");
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Not authenticated");
+      expect(mockUpdateUser).not.toHaveBeenCalled();
+    });
+
+    it("returns failure when updateUser returns error", async () => {
+      mockGetUser.mockResolvedValue({
+        data: { user: { id: "user-1" } },
+        error: null,
+      });
+      mockUpdateUser.mockResolvedValue({
+        data: null,
+        error: { message: "Password too weak" },
+      });
+      const result = await updatePassword("newpin6");
+      expect(result.success).toBe(false);
+      expect(result.error).toBe("Password too weak");
     });
   });
 });
