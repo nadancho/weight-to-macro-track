@@ -3,6 +3,7 @@
 import { AuthLoadingSkeleton, useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LogIn } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -55,7 +56,10 @@ export default function HistoryPage() {
       <div className="space-y-4">
         <p className="text-muted-foreground">You need to sign in to view history.</p>
         <Button asChild>
-          <Link href="/">Sign in</Link>
+          <Link href="/">
+            <LogIn className="size-4 shrink-0" aria-hidden />
+            Sign in
+          </Link>
         </Button>
       </div>
     );

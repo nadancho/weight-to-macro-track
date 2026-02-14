@@ -8,8 +8,9 @@
     --foreground: 240 40% 10%;
     --card: 0 0% 100%;
     --card-foreground: 240 40% 10%;
-    --primary: 245 82% 67%;
-    --primary-foreground: 210 20% 98%;
+    /* Silver primary with cool undertone; use with gentle white gradient on buttons */
+    --primary: 210 12% 68%;
+    --primary-foreground: 210 30% 12%;
     --secondary: 240 15% 90%;
     --secondary-foreground: 240 40% 15%;
     --muted: 240 10% 94%;
@@ -20,7 +21,7 @@
     --destructive-foreground: 210 20% 98%;
     --border: 240 15% 92%;
     --input: 240 15% 92%;
-    --ring: 245 82% 67%;
+    --ring: 210 12% 68%;
     --radius-lg: 1rem;
     --radius-md: calc(1rem - 2px);
     --radius-sm: calc(1rem - 4px);
@@ -32,8 +33,9 @@
     --foreground: 0 0% 98%;
     --card: 0 0% 10%;
     --card-foreground: 0 0% 98%;
-    --primary: 245 82% 67%;
-    --primary-foreground: 0 0% 7%;
+    /* Silver primary for dark mode; gentle gradient applied via button styles */
+    --primary: 210 14% 52%;
+    --primary-foreground: 210 10% 96%;
     --secondary: 0 0% 14%;
     --secondary-foreground: 0 0% 98%;
     --muted: 0 0% 12%;
@@ -44,7 +46,18 @@
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 15%;
     --input: 0 0% 15%;
-    --ring: 245 82% 67%;
+    --ring: 210 14% 52%;
+  }
+
+  /* Homogeneous inputs: hide native number spinners so they match text/date inputs */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
   }
 
   * {

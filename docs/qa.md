@@ -31,3 +31,13 @@ Checklist of planned work. When an item is done, move it to "Bugs fixed" or "Des
 ## Designs / behaviors implemented
 
 _(Optional: add short notes on intentional behavior or design decisions that affect QA.)_
+
+### Log page – date input / calendar selector
+
+- **What:** The log page uses the native date input (`<input type="date">`). Clicking the field or calendar icon opens the browser’s built-in date picker: overlay, month/year dropdown, previous/next arrows, calendar grid, and footer actions (Clear, Today).
+- **QA / design note:** The calendar selector’s mannerism is challenging to justify from a consistency standpoint:
+  - **Selected date highlight** uses the browser default (e.g. solid blue), which does not align with the app’s silver primary and gentle gradient + white tones.
+  - **Month/year navigation** uses native up/down arrows, which can look inconsistent with the rest of the UI and with our icon-based buttons.
+  - **Footer actions** (Clear, Today) are text-only; the app elsewhere favors icon + label for primary actions.
+- **Rationale for current behavior:** Native `<input type="date">` is used for accessibility, minimal JS, and reliable mobile behavior. Styling of the native picker is limited and varies by browser.
+- **Future options (for QA/backlog):** Custom date picker component (e.g. Radix Calendar or similar) would allow silver/gradient selected state, Lucide arrows, and icon+label footer buttons; trade-off is more code and need to maintain keyboard/accessibility behavior.

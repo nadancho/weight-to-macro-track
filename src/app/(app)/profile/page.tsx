@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LogIn, LogOut, Save } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -71,7 +72,10 @@ export default function ProfilePage() {
       <div className="space-y-4">
         <p className="text-muted-foreground">You need to sign in to view profile.</p>
         <Button asChild>
-          <Link href="/">Sign in</Link>
+          <Link href="/">
+            <LogIn className="size-4 shrink-0" aria-hidden />
+            Sign in
+          </Link>
         </Button>
       </div>
     );
@@ -82,6 +86,7 @@ export default function ProfilePage() {
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Profile</CardTitle>
         <Button variant="outline" size="sm" onClick={handleSignOut}>
+          <LogOut className="size-4 shrink-0" aria-hidden />
           Sign out
         </Button>
       </CardHeader>
@@ -97,6 +102,7 @@ export default function ProfilePage() {
             />
           </div>
           <Button type="submit" disabled={saving}>
+            <Save className="size-4 shrink-0" aria-hidden />
             {saving ? "Saving…" : "Save"}
           </Button>
         </form>

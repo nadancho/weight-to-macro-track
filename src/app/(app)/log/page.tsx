@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LogIn, Save } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -68,7 +69,10 @@ export default function LogPage() {
       <div className="space-y-4">
         <p className="text-muted-foreground">You need to sign in to log.</p>
         <Button asChild>
-          <Link href="/">Sign in</Link>
+          <Link href="/">
+            <LogIn className="size-4 shrink-0" aria-hidden />
+            Sign in
+          </Link>
         </Button>
       </div>
     );
@@ -152,6 +156,7 @@ export default function LogPage() {
             </p>
           )}
           <Button type="submit" disabled={saving} className="min-h-[44px]">
+            <Save className="size-4 shrink-0" aria-hidden />
             {saving ? "Saving…" : "Save log"}
           </Button>
         </form>

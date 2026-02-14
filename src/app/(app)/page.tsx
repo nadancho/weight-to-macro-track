@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { History, LogIn, PenLine } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -47,12 +48,18 @@ export default function HomePage() {
         <p className="text-muted-foreground">
           Track your weight and macros. Use the nav to log a day, view history, or update your profile.
         </p>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <Button asChild>
-            <Link href="/log">Log today</Link>
+            <Link href="/log">
+              <PenLine className="size-4 shrink-0" aria-hidden />
+              Log today
+            </Link>
           </Button>
           <Button variant="outline" asChild>
-            <Link href="/history">View history</Link>
+            <Link href="/history">
+              <History className="size-4 shrink-0" aria-hidden />
+              View history
+            </Link>
           </Button>
         </div>
       </div>
@@ -99,6 +106,7 @@ export default function HomePage() {
             <p className="text-sm text-destructive">{error}</p>
           )}
           <Button type="submit" className="w-full" disabled={loading}>
+            <LogIn className="size-4 shrink-0" aria-hidden />
             {loading ? "Signing in…" : "Sign in"}
           </Button>
           <p className="text-center text-sm text-muted-foreground">
