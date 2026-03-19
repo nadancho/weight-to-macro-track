@@ -109,3 +109,21 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  /* Green dot under calendar days that have logged data */
+  .day-logged {
+    position: relative;
+  }
+  .day-logged::after {
+    content: "";
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 9999px;
+    background-color: #4ade80;
+  }
+}

@@ -56,6 +56,7 @@ export default function HomePage() {
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [loggedDates, setLoggedDates] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -76,6 +77,26 @@ export default function HomePage() {
       cancelled = true;
     };
   }, [date]);
+
+  // Fetch which dates in the visible month have logs (for calendar dot indicators)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    const from = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    const to = `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+    fetch(`/api/logs?from=${from}&to=${to}`, { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((logs: { date: string }[]) => {
+        if (!cancelled) {
+          setLoggedDates(new Set(logs.map((l) => l.date)));
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [isAuthenticated, calendarMonth]);
 
   // Load existing log for selected date from Supabase via GET; prefill form for upsert
   useEffect(() => {
@@ -200,6 +221,7 @@ export default function HomePage() {
       setCookie(LAST_LOG_DATE_KEY, date);
       clearLogsCacheCookie();
       setMessage({ type: "ok", text: "Saved." });
+      setLoggedDates((prev) => new Set(prev).add(date));
       router.refresh();
     } else {
       const data = await res.json().catch(() => ({}));
@@ -295,6 +317,15 @@ export default function HomePage() {
                   if (!selected) return;
                   changeDate(selected.toISOString().slice(0, 10));
                   setCalendarMonth(selected);
+                }}
+                modifiers={{
+                  logged: (d: Date) => {
+                    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                    return loggedDates.has(iso);
+                  },
+                }}
+                modifiersClassNames={{
+                  logged: "day-logged",
                 }}
                 className="w-full"
               />
