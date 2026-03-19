@@ -310,13 +310,20 @@ export default function HomePage() {
             <div className="space-y-2">
               <Calendar
                 mode="single"
+                required
                 selected={date ? new Date(date + "T12:00:00") : undefined}
                 month={calendarMonth}
                 onMonthChange={setCalendarMonth}
                 onSelect={(selected) => {
                   if (!selected) return;
                   changeDate(selected.toISOString().slice(0, 10));
-                  setCalendarMonth(selected);
+                  // Navigate calendar month if user tapped an outside-month day
+                  if (
+                    selected.getMonth() !== calendarMonth.getMonth() ||
+                    selected.getFullYear() !== calendarMonth.getFullYear()
+                  ) {
+                    setCalendarMonth(selected);
+                  }
                 }}
                 modifiers={{
                   logged: (d: Date) => {
