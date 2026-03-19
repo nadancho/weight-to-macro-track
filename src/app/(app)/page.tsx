@@ -12,13 +12,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { format, subDays } from "date-fns";
-import { ArrowBigLeftDash, Beef, CalendarIcon, Camera, Croissant, Droplet, Flame, LogIn, Save, Scale } from "lucide-react";
+import { ArrowBigLeftDash, Beef, Camera, Croissant, Droplet, Flame, LogIn, Save, Scale } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -28,7 +23,8 @@ import { cn } from "@/lib/utils";
 const LAST_LOG_DATE_KEY = "last_log_date";
 
 function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function parseDateCookie(value: string | null): string | null {
@@ -44,7 +40,7 @@ export default function HomePage() {
   const router = useRouter();
   const { authResolved, isAuthenticated, setAuth } = useAuth();
   const [date, setDate] = useState(() => parseDateCookie(getCookie(LAST_LOG_DATE_KEY)) ?? todayISO());
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date(parseDateCookie(getCookie(LAST_LOG_DATE_KEY)) ?? todayISO() + "T12:00:00"));
   const [weight, setWeight] = useState("");
   const [carbs_g, setCarbsG] = useState("");
   const [protein_g, setProteinG] = useState("");
@@ -133,6 +129,11 @@ export default function HomePage() {
     }
     setAuth(true);
     router.refresh();
+  };
+
+  const changeDate = (next: string) => {
+    setDate(next);
+    setCookie(LAST_LOG_DATE_KEY, next);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -275,53 +276,45 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col items-center w-full">
-      <Card className="max-w-md w-full">
-        <CardHeader>
-          <CardTitle>Log day</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Enter weight and macros for a day. One log per day; submitting again updates that day.
+      <Card className="max-w-md w-full shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">Log day</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            One log per day. Submitting again updates that day.
           </p>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4 text-base">
+          <form onSubmit={handleSubmit} className="space-y-5 text-base">
             <div className="space-y-2">
-              <Label htmlFor="date">Date</Label>
-              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="date"
-                    variant="outline"
-                    className={cn(
-                      "w-full min-h-[44px] justify-start text-left font-normal text-base",
-                      !date && "text-muted-foreground"
-                    )}
+              <Calendar
+                mode="single"
+                selected={date ? new Date(date + "T12:00:00") : undefined}
+                month={calendarMonth}
+                onMonthChange={setCalendarMonth}
+                onSelect={(selected) => {
+                  if (!selected) return;
+                  changeDate(selected.toISOString().slice(0, 10));
+                  setCalendarMonth(selected);
+                }}
+                className="w-full"
+              />
+              <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
+                <p className="text-sm font-medium tracking-tight">
+                  {date ? format(new Date(date + "T12:00:00"), "EEEE, MMM d") : "Pick a date"}
+                </p>
+                {date !== todayISO() && (
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => {
+                      changeDate(todayISO());
+                      setCalendarMonth(new Date());
+                    }}
                   >
-                    <CalendarIcon className="mr-2 size-4 shrink-0" aria-hidden />
-                    {date ? format(new Date(date + "T12:00:00"), "PPP") : "Pick a date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="w-auto p-0 border-border"
-                  align="center"
-                  side="bottom"
-                  sideOffset={8}
-                >
-                  <div className="p-2">
-                    <Calendar
-                      mode="single"
-                      selected={date ? new Date(date + "T12:00:00") : undefined}
-                      onSelect={(selected) => {
-                        if (!selected) return;
-                        const next = selected.toISOString().slice(0, 10);
-                        setDate(next);
-                        setCookie(LAST_LOG_DATE_KEY, next);
-                        setDatePickerOpen(false);
-                      }}
-                      initialFocus
-                    />
-                  </div>
-                </PopoverContent>
-              </Popover>
+                    Jump to today
+                  </button>
+                )}
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="weight" className="inline-flex items-center gap-1.5">
@@ -390,16 +383,19 @@ export default function HomePage() {
                 className="hidden"
                 onChange={handleFileUpload}
               />
-              <Button
+              <button
                 type="button"
-                variant="outline"
-                className="min-h-[44px] w-full"
                 disabled={extracting}
                 onClick={() => fileInputRef.current?.click()}
+                className={cn(
+                  "flex items-center justify-center gap-2 rounded-lg border border-dashed border-border py-3 text-sm text-muted-foreground transition-colors",
+                  "hover:border-foreground/25 hover:text-foreground",
+                  extracting && "pointer-events-none opacity-50"
+                )}
               >
                 <Camera className="size-4 shrink-0" aria-hidden />
                 {extracting ? "Extracting…" : "Upload macro screenshot"}
-              </Button>
+              </button>
               {extractError && (
                 <p className="text-sm text-destructive">{extractError}</p>
               )}
@@ -478,21 +474,28 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-            <Flame className="size-4 shrink-0 text-foreground" aria-hidden />
-            Calories:{" "}
-            {macrosToCalories(
-              carbs_g ? Number(carbs_g) : null,
-              protein_g ? Number(protein_g) : null,
-              fat_g ? Number(fat_g) : null
-            )}
-          </p>
+          <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2.5">
+            <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Flame className="size-4 shrink-0" aria-hidden />
+              Calories
+            </span>
+            <span className="text-sm font-semibold tabular-nums">
+              {macrosToCalories(
+                carbs_g ? Number(carbs_g) : null,
+                protein_g ? Number(protein_g) : null,
+                fat_g ? Number(fat_g) : null
+              )}
+            </span>
+          </div>
           {message && (
-            <p className={message.type === "ok" ? "text-sm text-green-600 dark:text-green-400" : "text-sm text-destructive"}>
+            <p className={cn(
+              "text-sm text-center",
+              message.type === "ok" ? "text-green-600 dark:text-green-400" : "text-destructive"
+            )}>
               {message.text}
             </p>
           )}
-          <Button type="submit" disabled={saving} className="min-h-[44px]">
+          <Button type="submit" disabled={saving} className="w-full min-h-[44px]">
             <Save className="size-4 shrink-0" aria-hidden />
             {saving ? "Saving…" : "Save log"}
           </Button>
