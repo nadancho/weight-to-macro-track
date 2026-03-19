@@ -14,7 +14,7 @@ export default async function AppLayout({
   return (
     <AuthProvider initialAuth={!!session}>
     <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border">
+      <header className="sticky top-0 z-50 border-b border-white/[0.1] bg-background/60 backdrop-blur-xl">
         <nav className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3">
           <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-foreground">
             <Home className="h-5 w-5" aria-hidden />

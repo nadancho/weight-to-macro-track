@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { PinInput } from "@/components/ui/pin-input";
 import { cn } from "@/lib/utils";
+import { Raccoon } from "@/components/raccoon";
 
 const LAST_LOG_DATE_KEY = "last_log_date";
 
@@ -57,6 +58,7 @@ export default function HomePage() {
   const [extractError, setExtractError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loggedDates, setLoggedDates] = useState<Set<string>>(new Set());
+  const [showRaccoon, setShowRaccoon] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -222,6 +224,7 @@ export default function HomePage() {
       clearLogsCacheCookie();
       setMessage({ type: "ok", text: "Saved." });
       setLoggedDates((prev) => new Set(prev).add(date));
+      setShowRaccoon((k) => k + 1);
       router.refresh();
     } else {
       const data = await res.json().catch(() => ({}));
@@ -540,6 +543,7 @@ export default function HomePage() {
         </form>
       </CardContent>
     </Card>
+    {showRaccoon > 0 && <Raccoon key={showRaccoon} />}
     </div>
   );
 }

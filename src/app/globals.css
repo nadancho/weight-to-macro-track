@@ -42,9 +42,9 @@
 
   /* Instagram-inspired dark: dark gray background, light text/icons */
   .dark {
-    --background: 0 0% 7%;
+    --background: 220 15% 6%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 10%;
+    --card: 220 10% 11%;
     --card-foreground: 0 0% 98%;
     /* Silver primary for dark mode; gentle gradient applied via button styles */
     --primary: 210 14% 52%;
@@ -108,6 +108,16 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Ambient gradient blobs for glass depth */
+  .dark body {
+    background:
+      radial-gradient(ellipse 80% 50% at 10% -10%, hsla(210, 60%, 30%, 0.4) 0%, transparent 60%),
+      radial-gradient(ellipse 70% 50% at 90% 100%, hsla(270, 50%, 25%, 0.35) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 50% 50%, hsla(190, 40%, 20%, 0.15) 0%, transparent 70%),
+      hsl(var(--background));
+    background-attachment: fixed;
+  }
 }
 
 @layer components {
@@ -121,6 +131,54 @@
       background: hsl(var(--accent));
       color: hsl(var(--accent-foreground));
     }
+  }
+
+  /* Raccoon sprite animation */
+  .raccoon-container {
+    position: fixed;
+    bottom: 24px;
+    left: 0;
+    z-index: 100;
+    pointer-events: none;
+    transition: transform 0.2s ease-out;
+  }
+  .raccoon-walk-in {
+    animation: raccoon-slide-in 2.5s ease-out forwards;
+  }
+  .raccoon-fade-out {
+    opacity: 0;
+  }
+  .raccoon-clip {
+    width: 85px;
+    height: 125px;
+    overflow: hidden;
+  }
+  .raccoon-sprite {
+    width: 100px;
+    height: 125px;
+    margin-left: -15px;
+    background: url("/raccoon-sprite.png") no-repeat 0 0;
+    background-size: 1000px 250px;
+    image-rendering: pixelated;
+  }
+  .raccoon-walk {
+    animation: raccoon-walk-frames 1.6s steps(10) infinite;
+  }
+  .raccoon-flex {
+    animation: raccoon-flex-frames 1.6s steps(10) infinite;
+  }
+
+  @keyframes raccoon-slide-in {
+    from { transform: translateX(-120px); }
+    to { transform: translateX(24px); }
+  }
+  @keyframes raccoon-walk-frames {
+    from { background-position: 0 0; }
+    to { background-position: -1000px 0; }
+  }
+  @keyframes raccoon-flex-frames {
+    from { background-position: 0 -125px; }
+    to { background-position: -1000px -125px; }
   }
 
   .day-logged:has([aria-selected="true"])::after {
