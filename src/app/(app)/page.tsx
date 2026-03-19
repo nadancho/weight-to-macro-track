@@ -18,10 +18,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { format, subDays } from "date-fns";
-import { ArrowBigLeftDash, Beef, CalendarIcon, Croissant, Droplet, Flame, LogIn, Save, Scale } from "lucide-react";
+import { ArrowBigLeftDash, Beef, CalendarIcon, Camera, Croissant, Droplet, Flame, LogIn, Save, Scale } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PinInput } from "@/components/ui/pin-input";
 import { cn } from "@/lib/utils";
 
@@ -57,6 +57,9 @@ export default function HomePage() {
   const [password, setPassword] = useState("");
   const [signInError, setSignInError] = useState("");
   const [signInLoading, setSignInLoading] = useState(false);
+  const [extracting, setExtracting] = useState(false);
+  const [extractError, setExtractError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -130,6 +133,49 @@ export default function HomePage() {
     }
     setAuth(true);
     router.refresh();
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset input so the same file can be re-selected
+    e.target.value = "";
+
+    setExtractError("");
+    setExtracting(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Strip data URL prefix to get raw base64
+          resolve(result.split(",")[1]);
+        };
+        reader.onerror = () => reject(new Error("Failed to read file"));
+        reader.readAsDataURL(file);
+      });
+
+      const res = await fetch("/api/macros/extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ image: base64, media_type: file.type }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "Extraction failed");
+      }
+
+      const macros = await res.json();
+      setCarbsG(String(macros.carbs_g));
+      setProteinG(String(macros.protein_g));
+      setFatG(String(macros.fat_g));
+    } catch (err) {
+      setExtractError(err instanceof Error ? err.message : "Extraction failed");
+    } finally {
+      setExtracting(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -335,6 +381,28 @@ export default function HomePage() {
                   ) : null}
                 </div>
               </div>
+            </div>
+          <div className="flex flex-col gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileUpload}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-[44px] w-full"
+                disabled={extracting}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Camera className="size-4 shrink-0" aria-hidden />
+                {extracting ? "Extracting…" : "Upload macro screenshot"}
+              </Button>
+              {extractError && (
+                <p className="text-sm text-destructive">{extractError}</p>
+              )}
             </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="space-y-2">

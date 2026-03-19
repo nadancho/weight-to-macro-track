@@ -1,6 +1,6 @@
 import { AuthProvider } from "@/components/auth-provider";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
-import { History, Home, PenLine, User } from "lucide-react";
+import { BarChart2, History, Home, PenLine, User } from "lucide-react";
 import Link from "next/link";
 import { getSession } from "@/app/lib/modules/auth";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -34,6 +34,13 @@ export default async function AppLayout({
             >
               <History className="h-4 w-4" aria-hidden />
               <span className="hidden sm:inline">History</span>
+            </Link>
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-accent"
+            >
+              <BarChart2 className="h-4 w-4" aria-hidden />
+              <span className="hidden sm:inline">Dashboard</span>
             </Link>
             <Link
               href="/profile"

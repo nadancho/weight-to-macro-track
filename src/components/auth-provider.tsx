@@ -15,6 +15,8 @@ type AuthContextValue = {
   authResolved: boolean;
   /** True when the user is authenticated. */
   isAuthenticated: boolean;
+  /** The authenticated user's UUID, or null if not signed in. */
+  userId: string | null;
   /** Update auth state (e.g. after sign-in or sign-out) without refetching. */
   setAuth: (authenticated: boolean) => void;
 };
@@ -30,11 +32,17 @@ export function AuthProvider({
 }) {
   const [isAuthenticated, setIsAuthenticated] = useState(initialAuth);
   const [authResolved, setAuthResolved] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/profile", { credentials: "include" })
       .then((r) => {
-        setIsAuthenticated(r.ok);
+        if (r.ok) {
+          r.json().then((profile: { id: string }) => setUserId(profile.id));
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+        }
         setAuthResolved(true);
       })
       .catch(() => {
@@ -45,12 +53,13 @@ export function AuthProvider({
 
   const setAuth = useCallback((authenticated: boolean) => {
     setIsAuthenticated(authenticated);
+    if (!authenticated) setUserId(null);
     setAuthResolved(true);
   }, []);
 
   return (
     <AuthContext.Provider
-      value={{ authResolved, isAuthenticated, setAuth }}
+      value={{ authResolved, isAuthenticated, userId, setAuth }}
     >
       {children}
     </AuthContext.Provider>
@@ -64,6 +73,7 @@ export function useAuth(): AuthContextValue {
     return {
       authResolved: false,
       isAuthenticated: false,
+      userId: null,
       setAuth: () => {},
     };
   }
