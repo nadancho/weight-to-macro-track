@@ -46,8 +46,8 @@ function Calendar({
           "[&:has([aria-selected])]:bg-transparent"
         ),
         day_button: cn(
-          "inline-flex items-center justify-center rounded-full text-sm w-10 h-10 p-0 font-normal transition-all duration-150",
-          "hover:bg-accent hover:text-accent-foreground",
+          "inline-flex items-center justify-center rounded-full text-sm w-10 h-10 p-0 font-normal transition-colors duration-150",
+          "cal-day-btn",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           "aria-selected:opacity-100"
         ),

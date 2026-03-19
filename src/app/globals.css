@@ -115,6 +115,17 @@
   .day-logged {
     position: relative;
   }
+  /* Only show hover background on devices with a real pointer (not touch) */
+  @media (hover: hover) and (pointer: fine) {
+    .cal-day-btn:hover {
+      background: hsl(var(--accent));
+      color: hsl(var(--accent-foreground));
+    }
+  }
+
+  .day-logged:has([aria-selected="true"])::after {
+    display: none;
+  }
   .day-logged::after {
     content: "";
     position: absolute;
