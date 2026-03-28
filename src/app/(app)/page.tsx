@@ -13,11 +13,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { format, subDays } from "date-fns";
-import { Beef, Camera, Croissant, Droplet, Flame, LogIn, Save } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Beef, Camera, ChevronDown, Croissant, Droplet, Flame, LogIn, Save } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { PinInput } from "@/components/ui/pin-input";
+import { useDataCache } from "@/components/data-cache-provider";
 import { WeightStepper } from "@/components/weight-stepper";
 import { cn } from "@/lib/utils";
 import { Raccoon } from "@/components/raccoon";
@@ -41,6 +43,7 @@ function prevDayISO(dateISO: string): string {
 export default function HomePage() {
   const router = useRouter();
   const { authResolved, isAuthenticated, setAuth } = useAuth();
+  const { invalidate } = useDataCache();
   const [date, setDate] = useState(() => parseDateCookie(getCookie(LAST_LOG_DATE_KEY)) ?? todayISO());
   const [calendarMonth, setCalendarMonth] = useState(() => new Date(parseDateCookie(getCookie(LAST_LOG_DATE_KEY)) ?? todayISO() + "T12:00:00"));
   const [weight, setWeight] = useState<number | null>(null);
@@ -59,6 +62,7 @@ export default function HomePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loggedDates, setLoggedDates] = useState<Set<string>>(new Set());
   const [showRaccoon, setShowRaccoon] = useState(0);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   // Find the most recent weight entry before the selected date (up to 14 days back)
   useEffect(() => {
@@ -230,6 +234,8 @@ export default function HomePage() {
       setMessage({ type: "ok", text: "Saved." });
       setLoggedDates((prev) => new Set(prev).add(date));
       setShowRaccoon((k) => k + 1);
+      invalidate("/api/logs");
+      invalidate("/api/admin");
       router.refresh();
     } else {
       const data = await res.json().catch(() => ({}));
@@ -313,52 +319,78 @@ export default function HomePage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5 text-base">
-            <div className="space-y-2">
-              <Calendar
-                mode="single"
-                required
-                selected={date ? new Date(date + "T12:00:00") : undefined}
-                month={calendarMonth}
-                onMonthChange={setCalendarMonth}
-                onSelect={(selected) => {
-                  if (!selected) return;
-                  changeDate(selected.toISOString().slice(0, 10));
-                  // Navigate calendar month if user tapped an outside-month day
-                  if (
-                    selected.getMonth() !== calendarMonth.getMonth() ||
-                    selected.getFullYear() !== calendarMonth.getFullYear()
-                  ) {
-                    setCalendarMonth(selected);
-                  }
-                }}
-                modifiers={{
-                  logged: (d: Date) => {
-                    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-                    return loggedDates.has(iso);
-                  },
-                }}
-                modifiersClassNames={{
-                  logged: "day-logged",
-                }}
-                className="w-full"
-              />
-              <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
+            <div className="space-y-0">
+              <AnimatePresence initial={false}>
+                {calendarOpen && (
+                  <motion.div
+                    key="calendar"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                    className="overflow-hidden"
+                  >
+                    <Calendar
+                      mode="single"
+                      required
+                      selected={date ? new Date(date + "T12:00:00") : undefined}
+                      month={calendarMonth}
+                      onMonthChange={setCalendarMonth}
+                      onSelect={(selected) => {
+                        if (!selected) return;
+                        changeDate(selected.toISOString().slice(0, 10));
+                        if (
+                          selected.getMonth() !== calendarMonth.getMonth() ||
+                          selected.getFullYear() !== calendarMonth.getFullYear()
+                        ) {
+                          setCalendarMonth(selected);
+                        }
+                        // Auto-collapse after selection
+                        setTimeout(() => setCalendarOpen(false), 200);
+                      }}
+                      modifiers={{
+                        logged: (d: Date) => {
+                          const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                          return loggedDates.has(iso);
+                        },
+                      }}
+                      modifiersClassNames={{
+                        logged: "day-logged",
+                      }}
+                      className="w-full pb-2"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <button
+                type="button"
+                onClick={() => setCalendarOpen((o) => !o)}
+                className="flex w-full items-center justify-between rounded-lg bg-muted/50 px-3 py-2.5 active:scale-[0.98] transition-transform"
+              >
                 <p className="text-sm font-medium tracking-tight">
                   {date ? format(new Date(date + "T12:00:00"), "EEEE, MMM d") : "Pick a date"}
                 </p>
-                {date !== todayISO() && (
-                  <button
-                    type="button"
-                    className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-                    onClick={() => {
-                      changeDate(todayISO());
-                      setCalendarMonth(new Date());
-                    }}
-                  >
-                    Jump to today
-                  </button>
-                )}
-              </div>
+                <div className="flex items-center gap-2">
+                  {date !== todayISO() && (
+                    <span
+                      className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        changeDate(todayISO());
+                        setCalendarMonth(new Date());
+                      }}
+                    >
+                      Today
+                    </span>
+                  )}
+                  <ChevronDown
+                    className={cn(
+                      "size-4 text-muted-foreground transition-transform duration-200",
+                      calendarOpen && "rotate-180"
+                    )}
+                  />
+                </div>
+              </button>
             </div>
             <WeightStepper
               value={weight}
@@ -387,7 +419,7 @@ export default function HomePage() {
                 onClick={() => fileInputRef.current?.click()}
                 className={cn(
                   "flex items-center justify-center gap-2 rounded-lg bg-secondary text-foreground font-medium",
-                  "min-h-[44px] py-3 text-sm transition-colors",
+                  "min-h-[44px] py-3 text-sm transition-[colors,transform] duration-75 active:scale-[0.97]",
                   "hover:bg-accent",
                   extracting && "pointer-events-none opacity-50"
                 )}

@@ -13,6 +13,7 @@ import { AuthLoadingSkeleton, useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Beef, Check, ChevronDown, CircleCheckBig, CircleDashed, Croissant, Droplet, Flame, History, LogIn, Pencil, RefreshCcw, Scale, X } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import Link from "next/link";
@@ -694,7 +695,11 @@ export default function HistoryPage() {
       </CardHeader>
       <CardContent>
         {loading ? (
-          <p className="text-muted-foreground">Loading…</p>
+          <div className="space-y-3">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
         ) : (
           <>
           <div className="overflow-x-auto">

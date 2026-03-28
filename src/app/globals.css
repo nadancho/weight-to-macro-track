@@ -38,6 +38,7 @@
     --chart-3: 142 71% 45%;
     --chart-4: oklch(0.828 0.189 84.429);
     --chart-5: oklch(0.769 0.188 70.08);
+    --skeleton: 240 10% 90%;
   }
 
   /* Instagram-inspired dark: dark gray background, light text/icons */
@@ -73,6 +74,7 @@
     --chart-3: 142 71% 50%;
     --chart-4: oklch(0.627 0.265 303.9);
     --chart-5: oklch(0.645 0.246 16.439);
+    --skeleton: 0 0% 14%;
   }
 
   /* Homogeneous inputs: hide native number spinners so they match text/date inputs */
@@ -136,7 +138,7 @@
   /* Raccoon sprite animation */
   .raccoon-container {
     position: fixed;
-    bottom: 24px;
+    bottom: 88px;
     left: 0;
     z-index: 100;
     pointer-events: none;

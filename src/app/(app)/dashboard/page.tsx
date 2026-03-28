@@ -3,6 +3,8 @@
 import { useAuth, AuthLoadingSkeleton } from "@/components/auth-provider";
 import { macrosToCalories } from "@/app/lib/utils/calories";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { useDataCache } from "@/components/data-cache-provider";
+import { Skeleton } from "@/components/ui/skeleton";
 import { LogIn } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -431,23 +433,36 @@ function StatsView({
         </div>
       )}
 
-      <div className="flex flex-wrap gap-3">
-        <StatCard
-          label="Avg Weight"
-          value={(toDisplay(avgNum(dayData.map((d) => d.weight)), weightUnit) ?? 0).toFixed(1)}
-          unit={weightUnit}
-        />
-        <StatCard
-          label="Weight Δ"
-          value={weightVals.length ? `+${(toDisplay(maxW, weightUnit)! - toDisplay(minW, weightUnit)!).toFixed(1)}` : "—"}
-          unit={weightUnit}
-          sub={weightVals.length ? `${toDisplay(minW, weightUnit)?.toFixed(1)}–${toDisplay(maxW, weightUnit)?.toFixed(1)} ${weightUnit} range` : undefined}
-        />
-        <StatCard label="Avg Protein" value={fmtAvg(dayData, "protein")} unit="g" />
-        <StatCard label="Avg Carbs" value={fmtAvg(dayData, "carbs")} unit="g" />
-        <StatCard label="Avg Fat" value={fmtAvg(dayData, "fat")} unit="g" />
-        <StatCard label="Avg Calories" value={fmtAvg(dayData, "calories")} unit="kcal" />
-      </div>
+      {fetching ? (
+        <div className="flex flex-wrap gap-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} className="flex-1 min-w-[130px]">
+              <CardContent className="pt-4 pb-4 space-y-2">
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-7 w-24" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-3">
+          <StatCard
+            label="Avg Weight"
+            value={(toDisplay(avgNum(dayData.map((d) => d.weight)), weightUnit) ?? 0).toFixed(1)}
+            unit={weightUnit}
+          />
+          <StatCard
+            label="Weight Δ"
+            value={weightVals.length ? `+${(toDisplay(maxW, weightUnit)! - toDisplay(minW, weightUnit)!).toFixed(1)}` : "—"}
+            unit={weightUnit}
+            sub={weightVals.length ? `${toDisplay(minW, weightUnit)?.toFixed(1)}–${toDisplay(maxW, weightUnit)?.toFixed(1)} ${weightUnit} range` : undefined}
+          />
+          <StatCard label="Avg Protein" value={fmtAvg(dayData, "protein")} unit="g" />
+          <StatCard label="Avg Carbs" value={fmtAvg(dayData, "carbs")} unit="g" />
+          <StatCard label="Avg Fat" value={fmtAvg(dayData, "fat")} unit="g" />
+          <StatCard label="Avg Calories" value={fmtAvg(dayData, "calories")} unit="kcal" />
+        </div>
+      )}
 
       <Card>
         <CardHeader className="pb-2">
@@ -455,9 +470,7 @@ function StatsView({
         </CardHeader>
         <CardContent>
           {fetching ? (
-            <div className="flex items-center justify-center h-64 text-muted-foreground text-sm">
-              Loading...
-            </div>
+            <Skeleton className="h-[300px] w-full" />
           ) : dayData.length === 0 ? (
             <div className="flex items-center justify-center h-64 text-muted-foreground text-sm">
               No logs yet.
@@ -473,6 +486,7 @@ function StatsView({
 
 export default function DashboardPage() {
   const { isAuthenticated, authResolved, userId } = useAuth();
+  const { cachedFetch } = useDataCache();
   const isAdmin = userId === ADMIN_UUID;
 
   // Own logs
@@ -485,7 +499,7 @@ export default function DashboardPage() {
   const [adminLogs, setAdminLogs] = useState<LogEntry[]>([]);
   const [adminFetching, setAdminFetching] = useState(false);
 
-  // Fetch own logs
+  // Fetch own logs (cached across tab switches)
   useEffect(() => {
     if (!isAuthenticated) return;
     setOwnFetching(true);
@@ -493,32 +507,29 @@ export default function DashboardPage() {
     const from = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
       .toISOString()
       .slice(0, 10);
-    fetch(`/api/logs?from=${from}&to=${to}`)
-      .then((r) => r.json())
+    cachedFetch<LogEntry[]>(`/api/logs?from=${from}&to=${to}`)
       .then(setOwnLogs)
       .finally(() => setOwnFetching(false));
-  }, [isAuthenticated]);
+  }, [isAuthenticated, cachedFetch]);
 
-  // Fetch profiles if admin
+  // Fetch profiles if admin (cached)
   useEffect(() => {
     if (!isAdmin) return;
-    fetch("/api/admin/profiles")
-      .then((r) => r.json())
-      .then((data: Profile[]) => {
+    cachedFetch<Profile[]>("/api/admin/profiles")
+      .then((data) => {
         setProfiles(data);
         if (data.length > 0) setSelectedUserId(data[0].id);
       });
-  }, [isAdmin]);
+  }, [isAdmin, cachedFetch]);
 
-  // Fetch selected user's logs
+  // Fetch selected user's logs (cached)
   useEffect(() => {
     if (!isAdmin || !selectedUserId) return;
     setAdminFetching(true);
-    fetch(`/api/admin/logs?userId=${selectedUserId}`)
-      .then((r) => r.json())
+    cachedFetch<LogEntry[]>(`/api/admin/logs?userId=${selectedUserId}`)
       .then(setAdminLogs)
       .finally(() => setAdminFetching(false));
-  }, [isAdmin, selectedUserId]);
+  }, [isAdmin, selectedUserId, cachedFetch]);
 
   if (!authResolved) return <AuthLoadingSkeleton />;
 
