@@ -13,11 +13,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { format, subDays } from "date-fns";
-import { ArrowBigLeftDash, Beef, Camera, Croissant, Droplet, Flame, LogIn, Save, Scale } from "lucide-react";
+import { Beef, Camera, Croissant, Droplet, Flame, LogIn, Save } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { PinInput } from "@/components/ui/pin-input";
+import { WeightStepper } from "@/components/weight-stepper";
 import { cn } from "@/lib/utils";
 import { Raccoon } from "@/components/raccoon";
 
@@ -42,14 +43,13 @@ export default function HomePage() {
   const { authResolved, isAuthenticated, setAuth } = useAuth();
   const [date, setDate] = useState(() => parseDateCookie(getCookie(LAST_LOG_DATE_KEY)) ?? todayISO());
   const [calendarMonth, setCalendarMonth] = useState(() => new Date(parseDateCookie(getCookie(LAST_LOG_DATE_KEY)) ?? todayISO() + "T12:00:00"));
-  const [weight, setWeight] = useState("");
+  const [weight, setWeight] = useState<number | null>(null);
   const [carbs_g, setCarbsG] = useState("");
   const [protein_g, setProteinG] = useState("");
   const [fat_g, setFatG] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "ok" | "error"; text: string } | null>(null);
-  const [prevDayWeight, setPrevDayWeight] = useState<number | null | "loading">("loading");
-  const [chipExpanded, setChipExpanded] = useState(false);
+  const [prevWeight, setPrevWeight] = useState<{ weight: number; date: string } | null | "loading">("loading");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [signInError, setSignInError] = useState("");
@@ -60,20 +60,25 @@ export default function HomePage() {
   const [loggedDates, setLoggedDates] = useState<Set<string>>(new Set());
   const [showRaccoon, setShowRaccoon] = useState(0);
 
+  // Find the most recent weight entry before the selected date (up to 14 days back)
   useEffect(() => {
     let cancelled = false;
-    setPrevDayWeight("loading");
-    setChipExpanded(false);
-    const prev = prevDayISO(date);
-    fetch(`/api/logs?from=${prev}&to=${prev}`, { credentials: "include" })
+    setPrevWeight("loading");
+    const to = prevDayISO(date);
+    const from = subDays(new Date(date + "T12:00:00"), 14).toISOString().slice(0, 10);
+    fetch(`/api/logs?from=${from}&to=${to}`, { credentials: "include" })
       .then((res) => (res.ok ? res.json() : []))
-      .then((logs: { weight?: number | null }[]) => {
+      .then((logs: { date: string; weight?: number | null }[]) => {
         if (cancelled) return;
-        const log = logs[0];
-        setPrevDayWeight(log?.weight != null ? log.weight : null);
+        // Find the most recent log that has a weight, sorted newest first
+        const withWeight = logs
+          .filter((l) => l.weight != null)
+          .sort((a, b) => b.date.localeCompare(a.date));
+        const match = withWeight[0];
+        setPrevWeight(match ? { weight: match.weight!, date: match.date } : null);
       })
       .catch(() => {
-        if (!cancelled) setPrevDayWeight(null);
+        if (!cancelled) setPrevWeight(null);
       });
     return () => {
       cancelled = true;
@@ -110,12 +115,12 @@ export default function HomePage() {
         if (cancelled) return;
         const log = logs[0];
         if (log) {
-          setWeight(log.weight != null ? String(log.weight) : "");
+          setWeight(log.weight ?? null);
           setCarbsG(log.carbs_g != null ? String(log.carbs_g) : "");
           setProteinG(log.protein_g != null ? String(log.protein_g) : "");
           setFatG(log.fat_g != null ? String(log.fat_g) : "");
         } else {
-          setWeight("");
+          setWeight(null);
           setCarbsG("");
           setProteinG("");
           setFatG("");
@@ -123,7 +128,7 @@ export default function HomePage() {
       })
       .catch(() => {
         if (!cancelled) {
-          setWeight("");
+          setWeight(null);
           setCarbsG("");
           setProteinG("");
           setFatG("");
@@ -212,7 +217,7 @@ export default function HomePage() {
       credentials: "include",
       body: JSON.stringify({
         date,
-        weight: weight ? Number(weight) : null,
+        weight,
         carbs_g: carbs_g ? Number(carbs_g) : null,
         protein_g: protein_g ? Number(protein_g) : null,
         fat_g: fat_g ? Number(fat_g) : null,
@@ -297,8 +302,6 @@ export default function HomePage() {
     );
   }
 
-  const hasPrevDay = prevDayWeight !== null && prevDayWeight !== "loading";
-
   return (
     <div className="flex flex-col items-center w-full">
       <Card className="max-w-md w-full shadow-sm">
@@ -357,65 +360,19 @@ export default function HomePage() {
                 )}
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="weight" className="inline-flex items-center gap-1.5">
-                <Scale className="size-4 shrink-0 text-foreground" aria-hidden />
-                Weight (lbs)
-              </Label>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => hasPrevDay && setChipExpanded((p) => !p)}
-                  title={
-                    hasPrevDay
-                      ? `Previous day: ${prevDayWeight} lbs`
-                      : "No previous day"
-                  }
-                  aria-label={hasPrevDay ? `Previous day: ${prevDayWeight} lbs` : "No previous day"}
-                  aria-expanded={hasPrevDay ? chipExpanded : undefined}
-                  className={cn(
-                    "group flex h-10 min-w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border transition-all duration-200 ease-out",
-                    hasPrevDay && "hover:min-w-[7rem] hover:justify-start hover:pl-2.5 hover:pr-3",
-                    hasPrevDay && chipExpanded && "min-w-[7rem] justify-start pl-2.5 pr-3",
-                    hasPrevDay
-                      ? "cursor-default bg-secondary text-foreground hover:bg-accent"
-                      : "cursor-default bg-muted text-muted-foreground"
-                  )}
-                >
-                  <ArrowBigLeftDash
-                    className={cn("size-5 shrink-0", "group-hover:mr-2", chipExpanded && "mr-2")}
-                    aria-hidden
-                  />
-                  {hasPrevDay && (
-                    <span
-                      className={cn(
-                        "overflow-hidden whitespace-nowrap text-sm tabular-nums transition-all duration-200",
-                        "max-w-0 opacity-0 group-hover:max-w-[5rem] group-hover:opacity-100",
-                        chipExpanded && "max-w-[5rem] opacity-100"
-                      )}
-                    >
-                      {prevDayWeight} lbs
-                    </span>
-                  )}
-                </button>
-                <div className="relative flex-1">
-                  <Input
-                    id="weight"
-                    type="number"
-                    step="0.1"
-                    placeholder="e.g. 154"
-                    value={weight}
-                    onChange={(e) => setWeight(e.target.value)}
-                    className={cn("min-h-[44px] text-base", weight && "pr-10")}
-                  />
-                  {weight ? (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
-                      lbs
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            </div>
+            <WeightStepper
+              value={weight}
+              onChange={setWeight}
+              previousDayWeight={prevWeight === "loading" || prevWeight === null ? null : prevWeight.weight}
+              previousLabel={
+                prevWeight !== "loading" && prevWeight !== null
+                  ? prevWeight.date === prevDayISO(date)
+                    ? "Yesterday"
+                    : format(new Date(prevWeight.date + "T12:00:00"), "MMM d")
+                  : undefined
+              }
+              loading={prevWeight === "loading"}
+            />
           <div className="flex flex-col gap-2">
               <input
                 ref={fileInputRef}
@@ -429,13 +386,14 @@ export default function HomePage() {
                 disabled={extracting}
                 onClick={() => fileInputRef.current?.click()}
                 className={cn(
-                  "flex items-center justify-center gap-2 rounded-lg border border-dashed border-border py-3 text-sm text-muted-foreground transition-colors",
-                  "hover:border-foreground/25 hover:text-foreground",
+                  "flex items-center justify-center gap-2 rounded-lg bg-secondary text-foreground font-medium",
+                  "min-h-[44px] py-3 text-sm transition-colors",
+                  "hover:bg-accent",
                   extracting && "pointer-events-none opacity-50"
                 )}
               >
-                <Camera className="size-4 shrink-0" aria-hidden />
-                {extracting ? "Extracting…" : "Upload macro screenshot"}
+                <Camera className="size-5 shrink-0" aria-hidden />
+                {extracting ? "Extracting…" : "Snap macros from photo"}
               </button>
               {extractError && (
                 <p className="text-sm text-destructive">{extractError}</p>
