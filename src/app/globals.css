@@ -111,14 +111,17 @@
     @apply bg-background text-foreground;
   }
 
-  /* Ambient gradient blobs for glass depth */
-  .dark body {
+  /* Ambient gradient blobs for glass depth — uses fixed pseudo-element to avoid scroll repaints */
+  .dark body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
     background:
       radial-gradient(ellipse 80% 50% at 10% -10%, hsla(210, 60%, 30%, 0.4) 0%, transparent 60%),
       radial-gradient(ellipse 70% 50% at 90% 100%, hsla(270, 50%, 25%, 0.35) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 40% at 50% 50%, hsla(190, 40%, 20%, 0.15) 0%, transparent 70%),
-      hsl(var(--background));
-    background-attachment: fixed;
+      radial-gradient(ellipse 50% 40% at 50% 50%, hsla(190, 40%, 20%, 0.15) 0%, transparent 70%);
   }
 }
 
