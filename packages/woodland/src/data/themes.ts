@@ -2,47 +2,75 @@ import type { Collectible, ThemeDefinition } from "../types";
 
 /**
  * Cottagecore — forest at golden hour.
- * Derived from the woodland scene style anchor: deep forest greens,
- * warm amber lantern light, mossy mid-tones, cream text.
+ * Dark: deep forest floor, amber lantern light, mossy mid-tones.
+ * Light: warm parchment, forest green accents, morning sunlight.
  */
 export const cottagecore: ThemeDefinition = {
   id: "cottagecore",
   name: "Cottagecore",
   description: "A cozy forest at golden hour — warm, earthy, and inviting.",
   preview: "/themes/cottagecore/preview.png",
-  cssVariables: {
-    // Dark mode (primary — mobile PWA)
-    "--background": "130 18% 8%",          // deep forest floor
-    "--foreground": "40 30% 90%",          // warm cream text
-    "--card": "130 14% 13%",               // dark wood panel
+  dark: {
+    "--background": "130 18% 8%",
+    "--foreground": "40 30% 90%",
+    "--card": "130 14% 13%",
     "--card-foreground": "40 30% 90%",
-    "--primary": "38 80% 50%",             // amber lantern glow
+    "--primary": "38 80% 50%",
     "--primary-foreground": "130 20% 8%",
-    "--secondary": "130 12% 18%",          // mossy undertone
+    "--secondary": "130 12% 18%",
     "--secondary-foreground": "40 25% 85%",
-    "--muted": "130 10% 15%",              // dark moss
-    "--muted-foreground": "40 10% 55%",    // faded parchment
+    "--muted": "130 10% 15%",
+    "--muted-foreground": "40 10% 55%",
     "--accent": "130 12% 18%",
     "--accent-foreground": "40 25% 85%",
     "--destructive": "0 62% 50%",
     "--destructive-foreground": "40 30% 95%",
-    "--border": "130 10% 20%",             // subtle bark edge
+    "--border": "130 10% 20%",
     "--input": "130 10% 20%",
-    "--ring": "38 80% 50%",                // amber focus ring
-    // Macro colors shifted warmer
-    "--macro-protein": "#c97d5f",          // warm clay
+    "--ring": "38 80% 50%",
+    "--macro-protein": "#c97d5f",
     "--macro-protein-accent": "#a8614a",
-    "--macro-carbs": "#7a9a6d",            // forest moss
+    "--macro-carbs": "#7a9a6d",
     "--macro-carbs-accent": "#5f7d54",
-    "--macro-fat": "#c9a84c",              // honey gold
+    "--macro-fat": "#c9a84c",
     "--macro-fat-accent": "#a88e3a",
-    // Chart series
-    "--chart-1": "38 80% 55%",             // amber
-    "--chart-2": "15 70% 55%",             // warm rust
-    "--chart-3": "130 45% 45%",            // forest green
-    "--chart-4": "280 30% 55%",            // twilight purple
-    "--chart-5": "50 60% 55%",             // golden
+    "--chart-1": "38 80% 55%",
+    "--chart-2": "15 70% 55%",
+    "--chart-3": "130 45% 45%",
+    "--chart-4": "280 30% 55%",
+    "--chart-5": "50 60% 55%",
     "--skeleton": "130 10% 14%",
+  },
+  light: {
+    "--background": "40 30% 94%",
+    "--foreground": "130 25% 12%",
+    "--card": "40 25% 97%",
+    "--card-foreground": "130 25% 12%",
+    "--primary": "140 35% 30%",
+    "--primary-foreground": "40 30% 95%",
+    "--secondary": "40 20% 88%",
+    "--secondary-foreground": "130 20% 20%",
+    "--muted": "40 15% 90%",
+    "--muted-foreground": "130 10% 40%",
+    "--accent": "40 20% 88%",
+    "--accent-foreground": "130 20% 20%",
+    "--destructive": "0 72% 50%",
+    "--destructive-foreground": "40 30% 95%",
+    "--border": "40 15% 82%",
+    "--input": "40 15% 82%",
+    "--ring": "140 35% 30%",
+    "--macro-protein": "#a8614a",
+    "--macro-protein-accent": "#c97d5f",
+    "--macro-carbs": "#5f7d54",
+    "--macro-carbs-accent": "#7a9a6d",
+    "--macro-fat": "#a88e3a",
+    "--macro-fat-accent": "#c9a84c",
+    "--chart-1": "140 35% 35%",
+    "--chart-2": "15 60% 45%",
+    "--chart-3": "38 70% 45%",
+    "--chart-4": "280 25% 45%",
+    "--chart-5": "50 50% 45%",
+    "--skeleton": "40 15% 88%",
   },
   assets: {
     backgroundAnimation: "floating-leaves",
@@ -53,14 +81,14 @@ export const cottagecore: ThemeDefinition = {
 
 /**
  * Classic Dark — the current app look, preserved as fallback.
- * Values match the existing .dark {} block in globals.css.
+ * Values match the existing :root and .dark blocks in globals.css.
  */
 export const classicDark: ThemeDefinition = {
   id: "classic-dark",
-  name: "Classic Dark",
-  description: "Clean, modern dark theme.",
+  name: "Classic",
+  description: "Clean, modern theme.",
   preview: "/themes/classic-dark/preview.png",
-  cssVariables: {
+  dark: {
     "--background": "220 15% 6%",
     "--foreground": "0 0% 98%",
     "--card": "220 10% 11%",
@@ -91,6 +119,37 @@ export const classicDark: ThemeDefinition = {
     "--chart-5": "15 70% 55%",
     "--skeleton": "0 0% 14%",
   },
+  light: {
+    "--background": "240 33% 98%",
+    "--foreground": "240 40% 10%",
+    "--card": "0 0% 100%",
+    "--card-foreground": "240 40% 10%",
+    "--primary": "210 12% 68%",
+    "--primary-foreground": "210 30% 12%",
+    "--secondary": "240 15% 90%",
+    "--secondary-foreground": "240 40% 15%",
+    "--muted": "240 10% 94%",
+    "--muted-foreground": "240 10% 40%",
+    "--accent": "240 20% 96%",
+    "--accent-foreground": "240 40% 15%",
+    "--destructive": "0 84.2% 60.2%",
+    "--destructive-foreground": "210 20% 98%",
+    "--border": "240 15% 92%",
+    "--input": "240 15% 92%",
+    "--ring": "210 12% 68%",
+    "--macro-protein": "#e9967a",
+    "--macro-protein-accent": "#c97d5f",
+    "--macro-carbs": "#849b84",
+    "--macro-carbs-accent": "#6d7f6d",
+    "--macro-fat": "#a9a444",
+    "--macro-fat-accent": "#8f8a38",
+    "--chart-1": "217 91% 60%",
+    "--chart-2": "25 95% 53%",
+    "--chart-3": "142 71% 45%",
+    "--chart-4": "280 50% 50%",
+    "--chart-5": "15 60% 50%",
+    "--skeleton": "240 10% 90%",
+  },
 };
 
 /** All theme definitions. */
@@ -112,8 +171,8 @@ export const themeCollectibles: Collectible[] = [
   {
     id: "classic-dark",
     kind: "theme",
-    name: "Classic Dark",
-    description: "Clean, modern dark theme.",
+    name: "Classic",
+    description: "Clean, modern theme.",
     image: "/themes/classic-dark/preview.png",
     tags: ["theme", "default"],
     acquisition: { type: "default" },

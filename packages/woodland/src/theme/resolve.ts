@@ -1,16 +1,19 @@
 import type { Registry } from "../registry";
 import type { PlayerState, ResolvedTheme, ThemeDefinition } from "../types";
 
-/** Resolve a theme by ID, returning its CSS variables and assets. */
+export type ColorMode = "light" | "dark";
+
+/** Resolve a theme by ID and color mode, returning its CSS variables and assets. */
 export function resolveTheme(
   themeId: string,
+  mode: ColorMode,
   registry: Registry,
 ): ResolvedTheme | null {
   const theme = registry.themes.get(themeId);
   if (!theme) return null;
 
   return {
-    cssVariables: theme.cssVariables,
+    cssVariables: mode === "dark" ? theme.dark : theme.light,
     assets: theme.assets,
   };
 }

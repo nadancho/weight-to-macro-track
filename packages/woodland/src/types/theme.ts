@@ -1,10 +1,11 @@
-/** Full theme definition including CSS variables and optional assets. */
+/** Full theme definition including light and dark CSS variable sets. */
 export interface ThemeDefinition {
   id: string;
   name: string;
   description: string;
   preview: string;
-  cssVariables: Record<string, string>;
+  light: Record<string, string>;
+  dark: Record<string, string>;
   assets?: ThemeAssets;
 }
 

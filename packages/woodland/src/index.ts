@@ -27,6 +27,7 @@ export { resolveUnlocks } from "./evaluator";
 
 // Theme
 export { resolveTheme, getUnlockedThemes } from "./theme";
+export type { ColorMode } from "./theme";
 
 // Avatar
 export { resolveAvatar } from "./avatar";

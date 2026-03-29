@@ -21,9 +21,9 @@ export function ThemePicker() {
           {availableThemes.map((theme) => {
             const isActive = theme.id === activeThemeId;
             // Extract a few key colors for the preview swatch
-            const bg = theme.cssVariables["--background"];
-            const primary = theme.cssVariables["--primary"];
-            const card = theme.cssVariables["--card"];
+            const bg = theme.dark["--background"];
+            const primary = theme.dark["--primary"];
+            const card = theme.dark["--card"];
 
             return (
               <button

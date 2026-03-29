@@ -13,7 +13,8 @@ import {
   allThemes,
   themeCollectibles,
 } from "@woodland/core";
-import type { ResolvedTheme, ThemeDefinition } from "@woodland/core";
+import type { ColorMode, ResolvedTheme, ThemeDefinition } from "@woodland/core";
+import { useTheme } from "@/components/theme-provider";
 
 const registry = createRegistry({
   collectibles: themeCollectibles,
@@ -28,18 +29,23 @@ interface WoodlandThemeContextValue {
 
 const WoodlandThemeContext = createContext<WoodlandThemeContextValue | null>(null);
 
+let appliedKeys: string[] = [];
+
 function applyThemeToDocument(resolved: ResolvedTheme): void {
+  clearThemeFromDocument();
   const root = document.documentElement;
+  appliedKeys = Object.keys(resolved.cssVariables);
   for (const [key, value] of Object.entries(resolved.cssVariables)) {
     root.style.setProperty(key, value);
   }
 }
 
-function clearThemeFromDocument(resolved: ResolvedTheme): void {
+function clearThemeFromDocument(): void {
   const root = document.documentElement;
-  for (const key of Object.keys(resolved.cssVariables)) {
+  for (const key of appliedKeys) {
     root.style.removeProperty(key);
   }
+  appliedKeys = [];
 }
 
 export function WoodlandThemeProvider({
@@ -50,22 +56,24 @@ export function WoodlandThemeProvider({
   children: React.ReactNode;
 }) {
   const [activeThemeId, setActiveThemeId] = useState(initialThemeId);
+  const { theme: colorMode } = useTheme();
 
+  // Apply the right variant (light/dark) whenever theme or color mode changes
   useEffect(() => {
-    const resolved = resolveTheme(activeThemeId, registry);
+    const mode: ColorMode = colorMode === "dark" ? "dark" : "light";
+    const resolved = resolveTheme(activeThemeId, mode, registry);
     if (!resolved) return;
     applyThemeToDocument(resolved);
     document.documentElement.setAttribute("data-woodland-theme", activeThemeId);
     return () => {
-      clearThemeFromDocument(resolved);
+      clearThemeFromDocument();
       document.documentElement.removeAttribute("data-woodland-theme");
     };
-  }, [activeThemeId]);
+  }, [activeThemeId, colorMode]);
 
   const setActiveTheme = useCallback(
     async (themeId: string) => {
       setActiveThemeId(themeId);
-      // Persist to profile
       try {
         await fetch("/api/profile", {
           method: "PATCH",
