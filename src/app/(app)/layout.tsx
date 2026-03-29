@@ -4,10 +4,11 @@ import { LogCacheProvider } from "@/components/log-cache-provider";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { UserPrefsProvider } from "@/components/user-prefs-provider";
 import { WoodlandThemeProvider } from "@/components/woodland-theme-provider";
-import { BarChart2, History, Home, PenLine, Trophy, User } from "lucide-react";
+import { BarChart2, History, PenLine, Trophy, User } from "lucide-react";
 import Link from "next/link";
 import { getSession } from "@/app/lib/modules/auth";
 import { getProfile } from "@/app/lib/modules/profiles";
+import { PageHeader } from "@/components/page-header";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export default async function AppLayout({
@@ -36,10 +37,7 @@ export default async function AppLayout({
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <nav className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3">
-          <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-foreground">
-            <Home className="h-5 w-5" aria-hidden />
-            Weight Tracker
-          </Link>
+          <PageHeader />
           <div className="flex items-center gap-1 sm:gap-2">
             <div className="hidden sm:flex items-center gap-1 sm:gap-2">
               <Link
