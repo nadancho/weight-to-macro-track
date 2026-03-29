@@ -32,3 +32,6 @@ next-env.d.ts
 
 # Vitest
 coverage
+
+# Superpowers brainstorm sessions
+.superpowers
