@@ -147,8 +147,13 @@ export function LogCacheProvider({ children }: { children: React.ReactNode }) {
 
   // ---------- Optimistic write ----------
 
+  const pendingSaves = useRef<Map<string, Promise<{ ok: boolean; error?: string }>>>(new Map());
+
   const saveLog = useCallback(
     async (entry: SaveLogPayload): Promise<{ ok: boolean; error?: string }> => {
+      // Deduplicate: if a save for this date is already in-flight, return it
+      const existing = pendingSaves.current.get(entry.date);
+      if (existing) return existing;
       const tempId = `temp_${entry.date}`;
       const optimistic: LogEntry = {
         id: logMap.get(entry.date)?.id ?? tempId,
@@ -169,47 +174,49 @@ export function LogCacheProvider({ children }: { children: React.ReactNode }) {
         return next;
       });
 
-      try {
-        const res = await fetch("/api/logs", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(entry),
-        });
+      const promise = (async (): Promise<{ ok: boolean; error?: string }> => {
+        try {
+          const res = await fetch("/api/logs", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify(entry),
+          });
 
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          // Rollback
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            setLogMap((m) => {
+              const next = new Map(m);
+              if (prev) next.set(entry.date, prev);
+              else next.delete(entry.date);
+              return next;
+            });
+            return { ok: false, error: data.error ?? "Failed to save" };
+          }
+
+          const saved: LogEntry = await res.json();
+          setLogMap((m) => {
+            const next = new Map(m);
+            next.set(saved.date, saved);
+            writeLogsToStorage(mapToSortedArray(next));
+            return next;
+          });
+
+          return { ok: true };
+        } catch {
           setLogMap((m) => {
             const next = new Map(m);
             if (prev) next.set(entry.date, prev);
             else next.delete(entry.date);
             return next;
           });
-          return { ok: false, error: data.error ?? "Failed to save" };
+          return { ok: false, error: "Network error" };
         }
+      })();
 
-        const saved: LogEntry = await res.json();
-        // Replace optimistic entry with server response
-        setLogMap((m) => {
-          const next = new Map(m);
-          next.set(saved.date, saved);
-          // Persist to localStorage
-          writeLogsToStorage(mapToSortedArray(next));
-          return next;
-        });
-
-        return { ok: true };
-      } catch {
-        // Rollback on network error
-        setLogMap((m) => {
-          const next = new Map(m);
-          if (prev) next.set(entry.date, prev);
-          else next.delete(entry.date);
-          return next;
-        });
-        return { ok: false, error: "Network error" };
-      }
+      pendingSaves.current.set(entry.date, promise);
+      promise.finally(() => pendingSaves.current.delete(entry.date));
+      return promise;
     },
     [logMap]
   );

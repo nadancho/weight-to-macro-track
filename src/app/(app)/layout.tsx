@@ -22,6 +22,12 @@ export default async function AppLayout({
     <WoodlandThemeProvider initialThemeId={initialTheme}>
     <LogCacheProvider>
     <div className="min-h-screen bg-background text-foreground">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:text-sm focus:font-medium"
+      >
+        Skip to content
+      </a>
       <header className="sticky top-0 z-50 border-b border-white/[0.1] bg-background/60 backdrop-blur-xl">
         <nav className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3">
           <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-foreground">
@@ -63,7 +69,7 @@ export default async function AppLayout({
           </div>
         </nav>
       </header>
-      <main className="mx-auto max-w-4xl px-4 py-6 pb-24 sm:pb-6">{children}</main>
+      <main id="main-content" className="mx-auto max-w-4xl px-4 py-6 pb-24 sm:pb-6">{children}</main>
       <BottomNav />
       <PwaInstallPrompt />
     </div>

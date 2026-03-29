@@ -74,7 +74,7 @@ export function WeightStepper({
   // Large arrow buttons for ±0.1 (primary action, hit repeatedly)
   const btnFine = cn(btnBase, "h-12 w-12 bg-secondary text-foreground border border-border");
   // Small text buttons for ±1
-  const btnCoarse = cn(btnBase, "h-9 w-9 border border-border/60 text-muted-foreground text-xs font-medium");
+  const btnCoarse = cn(btnBase, "h-11 w-11 border border-border/60 text-muted-foreground text-xs font-medium");
 
   return (
     <div className="space-y-2">

@@ -229,7 +229,7 @@ export default function HomePage() {
                 />
               </div>
               {signInError && (
-                <p className="text-sm text-destructive">{signInError}</p>
+                <p className="text-sm text-destructive" role="alert">{signInError}</p>
               )}
               {pinComplete && (
                 <Button type="submit" className="w-full" disabled={signInLoading}>
@@ -369,7 +369,7 @@ export default function HomePage() {
                 {extracting ? "Extracting…" : "Snap macros from photo"}
               </button>
               {extractError && (
-                <p className="text-sm text-destructive">{extractError}</p>
+                <p className="text-sm text-destructive" role="alert">{extractError}</p>
               )}
             </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
