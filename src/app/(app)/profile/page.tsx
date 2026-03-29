@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PinInput } from "@/components/ui/pin-input";
+import { ThemePicker } from "@/components/theme-picker";
 import { KeyRound, LogIn, LogOut, Save } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -121,7 +122,9 @@ export default function ProfilePage() {
   }
 
   return (
-    <Card className="max-w-md">
+    <div className="space-y-6 max-w-md">
+    <ThemePicker />
+    <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Profile</CardTitle>
         <Button variant="outline" size="sm" onClick={handleSignOut}>
@@ -206,5 +209,6 @@ export default function ProfilePage() {
         </form>
       </CardContent>
     </Card>
+    </div>
   );
 }

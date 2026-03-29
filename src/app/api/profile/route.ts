@@ -5,6 +5,7 @@ import { z } from "zod";
 
 const patchBodySchema = z.object({
   display_name: z.string().optional(),
+  theme: z.string().optional(),
 });
 
 export async function GET() {

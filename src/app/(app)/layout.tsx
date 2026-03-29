@@ -2,9 +2,11 @@ import { AuthProvider } from "@/components/auth-provider";
 import { BottomNav } from "@/components/bottom-nav";
 import { LogCacheProvider } from "@/components/log-cache-provider";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
+import { WoodlandThemeProvider } from "@/components/woodland-theme-provider";
 import { BarChart2, History, Home, PenLine, User } from "lucide-react";
 import Link from "next/link";
 import { getSession } from "@/app/lib/modules/auth";
+import { getProfile } from "@/app/lib/modules/profiles";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export default async function AppLayout({
@@ -13,8 +15,11 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const session = await getSession();
+  const profile = session ? await getProfile() : null;
+  const initialTheme = (profile as { theme?: string } | null)?.theme ?? "cottagecore";
   return (
     <AuthProvider initialAuth={!!session}>
+    <WoodlandThemeProvider initialThemeId={initialTheme}>
     <LogCacheProvider>
     <div className="min-h-screen bg-background text-foreground">
       <a
@@ -69,6 +74,7 @@ export default async function AppLayout({
       <PwaInstallPrompt />
     </div>
     </LogCacheProvider>
+    </WoodlandThemeProvider>
     </AuthProvider>
   );
 }

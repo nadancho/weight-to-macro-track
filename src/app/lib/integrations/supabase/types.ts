@@ -18,20 +18,43 @@ export interface Database {
         Row: {
           id: string;
           display_name: string | null;
+          theme: string;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id: string;
           display_name?: string | null;
+          theme?: string;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
           display_name?: string | null;
+          theme?: string;
           created_at?: string;
           updated_at?: string;
+        };
+      };
+      user_collectibles: {
+        Row: {
+          id: string;
+          user_id: string;
+          collectible_id: string;
+          awarded_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          collectible_id: string;
+          awarded_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          collectible_id?: string;
+          awarded_at?: string;
         };
       };
       daily_logs: {
