@@ -28,7 +28,10 @@ export default async function AppLayout({
       >
         Skip to content
       </a>
-      <header className="sticky top-0 z-50 border-b border-white/[0.1] bg-background/60 backdrop-blur-xl">
+      <header
+        className="sticky top-0 z-50 border-b border-white/[0.1] bg-background/60 backdrop-blur-xl"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
         <nav className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3">
           <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-foreground">
             <Home className="h-5 w-5" aria-hidden />
