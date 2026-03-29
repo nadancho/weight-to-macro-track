@@ -1,6 +1,6 @@
 import { AuthProvider } from "@/components/auth-provider";
 import { BottomNav } from "@/components/bottom-nav";
-import { DataCacheProvider } from "@/components/data-cache-provider";
+import { LogCacheProvider } from "@/components/log-cache-provider";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { BarChart2, History, Home, PenLine, User } from "lucide-react";
 import Link from "next/link";
@@ -15,7 +15,7 @@ export default async function AppLayout({
   const session = await getSession();
   return (
     <AuthProvider initialAuth={!!session}>
-    <DataCacheProvider>
+    <LogCacheProvider>
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-50 border-b border-white/[0.1] bg-background/60 backdrop-blur-xl">
         <nav className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3">
@@ -62,7 +62,7 @@ export default async function AppLayout({
       <BottomNav />
       <PwaInstallPrompt />
     </div>
-    </DataCacheProvider>
+    </LogCacheProvider>
     </AuthProvider>
   );
 }

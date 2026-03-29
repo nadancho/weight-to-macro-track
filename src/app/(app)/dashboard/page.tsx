@@ -3,7 +3,7 @@
 import { useAuth, AuthLoadingSkeleton } from "@/components/auth-provider";
 import { macrosToCalories } from "@/app/lib/utils/calories";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { useDataCache } from "@/components/data-cache-provider";
+import { useLogCache } from "@/components/log-cache-provider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LogIn } from "lucide-react";
 import Link from "next/link";
@@ -486,12 +486,12 @@ function StatsView({
 
 export default function DashboardPage() {
   const { isAuthenticated, authResolved, userId } = useAuth();
-  const { cachedFetch } = useDataCache();
+  const { logs: cachedLogs, initialized } = useLogCache();
   const isAdmin = userId === ADMIN_UUID;
 
-  // Own logs
-  const [ownLogs, setOwnLogs] = useState<LogEntry[]>([]);
-  const [ownFetching, setOwnFetching] = useState(false);
+  // Own logs — read directly from unified cache
+  const ownLogs: LogEntry[] = cachedLogs;
+  const ownFetching = !initialized;
 
   // Admin state
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -499,37 +499,26 @@ export default function DashboardPage() {
   const [adminLogs, setAdminLogs] = useState<LogEntry[]>([]);
   const [adminFetching, setAdminFetching] = useState(false);
 
-  // Fetch own logs (cached across tab switches)
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    setOwnFetching(true);
-    const to = new Date().toISOString().slice(0, 10);
-    const from = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 10);
-    cachedFetch<LogEntry[]>(`/api/logs?from=${from}&to=${to}`)
-      .then(setOwnLogs)
-      .finally(() => setOwnFetching(false));
-  }, [isAuthenticated, cachedFetch]);
-
-  // Fetch profiles if admin (cached)
+  // Fetch profiles if admin
   useEffect(() => {
     if (!isAdmin) return;
-    cachedFetch<Profile[]>("/api/admin/profiles")
-      .then((data) => {
+    fetch("/api/admin/profiles")
+      .then((r) => r.json())
+      .then((data: Profile[]) => {
         setProfiles(data);
         if (data.length > 0) setSelectedUserId(data[0].id);
       });
-  }, [isAdmin, cachedFetch]);
+  }, [isAdmin]);
 
-  // Fetch selected user's logs (cached)
+  // Fetch selected user's logs (admin only — not cached)
   useEffect(() => {
     if (!isAdmin || !selectedUserId) return;
     setAdminFetching(true);
-    cachedFetch<LogEntry[]>(`/api/admin/logs?userId=${selectedUserId}`)
+    fetch(`/api/admin/logs?userId=${selectedUserId}`)
+      .then((r) => r.json())
       .then(setAdminLogs)
       .finally(() => setAdminFetching(false));
-  }, [isAdmin, selectedUserId, cachedFetch]);
+  }, [isAdmin, selectedUserId]);
 
   if (!authResolved) return <AuthLoadingSkeleton />;
 

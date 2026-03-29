@@ -13,12 +13,11 @@ import { useState } from "react";
 
 export default function SignUpPage() {
   const router = useRouter();
-  const { authResolved, isAuthenticated } = useAuth();
+  const { authResolved, isAuthenticated, setAuth } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +35,10 @@ export default function SignUpPage() {
       setError(data.error ?? "Sign up failed");
       return;
     }
-    setSuccess(true);
+    // Session is already set by Supabase — sign in and redirect
+    setAuth(true);
+    router.replace("/");
+    router.refresh();
   };
 
   if (!authResolved) {
@@ -47,28 +49,6 @@ export default function SignUpPage() {
     router.replace("/");
     return (
       <p className="text-muted-foreground">Redirecting…</p>
-    );
-  }
-
-  if (success) {
-    return (
-      <div className="flex flex-col items-center justify-center w-full min-h-[60vh] py-8">
-        <Card className="max-w-sm w-full">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold tracking-tight sm:text-3xl">
-              Account created
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Sign in with your email and PIN to continue.
-            </p>
-          </CardHeader>
-          <CardContent>
-            <Button asChild className="w-full">
-              <Link href="/">Sign in</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
     );
   }
 

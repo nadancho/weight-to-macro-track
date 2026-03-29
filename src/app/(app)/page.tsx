@@ -5,7 +5,6 @@ import { macrosToCalories } from "@/app/lib/utils/calories";
 import {
   getCookie,
   setCookie,
-  clearLogsCacheCookie,
 } from "@/app/lib/utils/cookies";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -17,9 +16,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Beef, Camera, ChevronDown, Croissant, Droplet, Flame, LogIn, Save } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PinInput } from "@/components/ui/pin-input";
-import { useDataCache } from "@/components/data-cache-provider";
+import { useLogCache } from "@/components/log-cache-provider";
 import { WeightStepper } from "@/components/weight-stepper";
 import { cn } from "@/lib/utils";
 import { Raccoon } from "@/components/raccoon";
@@ -43,16 +42,14 @@ function prevDayISO(dateISO: string): string {
 export default function HomePage() {
   const router = useRouter();
   const { authResolved, isAuthenticated, setAuth } = useAuth();
-  const { invalidate } = useDataCache();
+  const { getLog, getLogsByRange, saveLog } = useLogCache();
   const [date, setDate] = useState(() => parseDateCookie(getCookie(LAST_LOG_DATE_KEY)) ?? todayISO());
   const [calendarMonth, setCalendarMonth] = useState(() => new Date(parseDateCookie(getCookie(LAST_LOG_DATE_KEY)) ?? todayISO() + "T12:00:00"));
   const [weight, setWeight] = useState<number | null>(null);
   const [carbs_g, setCarbsG] = useState("");
   const [protein_g, setProteinG] = useState("");
   const [fat_g, setFatG] = useState("");
-  const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "ok" | "error"; text: string } | null>(null);
-  const [prevWeight, setPrevWeight] = useState<{ weight: number; date: string } | null | "loading">("loading");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [signInError, setSignInError] = useState("");
@@ -60,88 +57,44 @@ export default function HomePage() {
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [loggedDates, setLoggedDates] = useState<Set<string>>(new Set());
   const [showRaccoon, setShowRaccoon] = useState(0);
   const [calendarOpen, setCalendarOpen] = useState(false);
 
-  // Find the most recent weight entry before the selected date (up to 14 days back)
-  useEffect(() => {
-    let cancelled = false;
-    setPrevWeight("loading");
+  // Previous weight — read from cache (up to 14 days back)
+  const prevWeight = useMemo(() => {
     const to = prevDayISO(date);
     const from = subDays(new Date(date + "T12:00:00"), 14).toISOString().slice(0, 10);
-    fetch(`/api/logs?from=${from}&to=${to}`, { credentials: "include" })
-      .then((res) => (res.ok ? res.json() : []))
-      .then((logs: { date: string; weight?: number | null }[]) => {
-        if (cancelled) return;
-        // Find the most recent log that has a weight, sorted newest first
-        const withWeight = logs
-          .filter((l) => l.weight != null)
-          .sort((a, b) => b.date.localeCompare(a.date));
-        const match = withWeight[0];
-        setPrevWeight(match ? { weight: match.weight!, date: match.date } : null);
-      })
-      .catch(() => {
-        if (!cancelled) setPrevWeight(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [date]);
+    const recent = getLogsByRange(from, to)
+      .filter((l) => l.weight != null)
+      .sort((a, b) => b.date.localeCompare(a.date));
+    return recent[0] ? { weight: recent[0].weight!, date: recent[0].date } : null;
+  }, [date, getLogsByRange]);
 
-  // Fetch which dates in the visible month have logs (for calendar dot indicators)
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    let cancelled = false;
+  // Calendar logged dates — derived from cache
+  const loggedDates = useMemo(() => {
     const year = calendarMonth.getFullYear();
     const month = calendarMonth.getMonth();
     const from = `${year}-${String(month + 1).padStart(2, "0")}-01`;
     const lastDay = new Date(year, month + 1, 0).getDate();
     const to = `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-    fetch(`/api/logs?from=${from}&to=${to}`, { credentials: "include" })
-      .then((res) => (res.ok ? res.json() : []))
-      .then((logs: { date: string }[]) => {
-        if (!cancelled) {
-          setLoggedDates(new Set(logs.map((l) => l.date)));
-        }
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [isAuthenticated, calendarMonth]);
+    return new Set(getLogsByRange(from, to).map((l) => l.date));
+  }, [calendarMonth, getLogsByRange]);
 
-  // Load existing log for selected date from Supabase via GET; prefill form for upsert
+  // Prefill form from cache when date changes
   useEffect(() => {
-    if (!isAuthenticated) return;
-    let cancelled = false;
-    fetch(`/api/logs?from=${date}&to=${date}`, { credentials: "include", cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : []))
-      .then((logs: { weight?: number | null; carbs_g?: number | null; protein_g?: number | null; fat_g?: number | null }[]) => {
-        if (cancelled) return;
-        const log = logs[0];
-        if (log) {
-          setWeight(log.weight ?? null);
-          setCarbsG(log.carbs_g != null ? String(log.carbs_g) : "");
-          setProteinG(log.protein_g != null ? String(log.protein_g) : "");
-          setFatG(log.fat_g != null ? String(log.fat_g) : "");
-        } else {
-          setWeight(null);
-          setCarbsG("");
-          setProteinG("");
-          setFatG("");
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setWeight(null);
-          setCarbsG("");
-          setProteinG("");
-          setFatG("");
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated, date]);
+    const log = getLog(date);
+    if (log) {
+      setWeight(log.weight ?? null);
+      setCarbsG(log.carbs_g != null ? String(log.carbs_g) : "");
+      setProteinG(log.protein_g != null ? String(log.protein_g) : "");
+      setFatG(log.fat_g != null ? String(log.fat_g) : "");
+    } else {
+      setWeight(null);
+      setCarbsG("");
+      setProteinG("");
+      setFatG("");
+    }
+  }, [date, getLog]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -211,36 +164,25 @@ export default function HomePage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
-    setSaving(true);
-    const res = await fetch("/api/logs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
-        date,
-        weight,
-        carbs_g: carbs_g ? Number(carbs_g) : null,
-        protein_g: protein_g ? Number(protein_g) : null,
-        fat_g: fat_g ? Number(fat_g) : null,
-      }),
+    setCookie(LAST_LOG_DATE_KEY, date);
+    setMessage({ type: "ok", text: "Saved." });
+    setShowRaccoon((k) => k + 1);
+
+    // Fire and forget — cache updates optimistically, API persists in background
+    saveLog({
+      date,
+      weight,
+      carbs_g: carbs_g ? Number(carbs_g) : null,
+      protein_g: protein_g ? Number(protein_g) : null,
+      fat_g: fat_g ? Number(fat_g) : null,
+    }).then((result) => {
+      if (!result.ok) {
+        setMessage({ type: "error", text: result.error ?? "Failed to save" });
+      }
     });
-    setSaving(false);
-    if (res.ok) {
-      setCookie(LAST_LOG_DATE_KEY, date);
-      clearLogsCacheCookie();
-      setMessage({ type: "ok", text: "Saved." });
-      setLoggedDates((prev) => new Set(prev).add(date));
-      setShowRaccoon((k) => k + 1);
-      invalidate("/api/logs");
-      invalidate("/api/admin");
-      router.refresh();
-    } else {
-      const data = await res.json().catch(() => ({}));
-      setMessage({ type: "error", text: data.error ?? "Failed to save" });
-    }
   };
 
   if (!authResolved) {
@@ -395,15 +337,14 @@ export default function HomePage() {
             <WeightStepper
               value={weight}
               onChange={setWeight}
-              previousDayWeight={prevWeight === "loading" || prevWeight === null ? null : prevWeight.weight}
+              previousDayWeight={prevWeight?.weight ?? null}
               previousLabel={
-                prevWeight !== "loading" && prevWeight !== null
+                prevWeight
                   ? prevWeight.date === prevDayISO(date)
                     ? "Yesterday"
                     : format(new Date(prevWeight.date + "T12:00:00"), "MMM d")
                   : undefined
               }
-              loading={prevWeight === "loading"}
             />
           <div className="flex flex-col gap-2">
               <input
@@ -526,9 +467,9 @@ export default function HomePage() {
               {message.text}
             </p>
           )}
-          <Button type="submit" disabled={saving} className="w-full min-h-[44px]">
+          <Button type="submit" className="w-full min-h-[44px]">
             <Save className="size-4 shrink-0" aria-hidden />
-            {saving ? "Saving…" : "Save log"}
+            Save log
           </Button>
         </form>
       </CardContent>

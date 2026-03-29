@@ -3,11 +3,9 @@
 import {
   getCookie,
   setCookie,
-  setLogsCacheCookie,
-  clearLogsCacheCookie,
-  LOGS_CACHE_COOKIE,
   HISTORY_AGGREGATE_COOKIE,
 } from "@/app/lib/utils/cookies";
+import { useLogCache } from "@/components/log-cache-provider";
 import { macrosToCalories } from "@/app/lib/utils/calories";
 import { AuthLoadingSkeleton, useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -125,31 +123,6 @@ function formatWeekLabel(mondayStr: string): string {
   return `${monDay} – ${sunDay} ${month} ${year}`;
 }
 
-function parseLogsCache(
-  raw: string | null
-): { from: string; to: string; logs: LogEntry[] } | null {
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as {
-      from?: string;
-      to?: string;
-      logs?: unknown[];
-    };
-    if (
-      typeof parsed?.from !== "string" ||
-      typeof parsed?.to !== "string" ||
-      !Array.isArray(parsed.logs)
-    )
-      return null;
-    return {
-      from: parsed.from,
-      to: parsed.to,
-      logs: parsed.logs as LogEntry[],
-    };
-  } catch {
-    return null;
-  }
-}
 
 function WeekCalendarPicker({
   range,
@@ -200,27 +173,9 @@ function WeekCalendarPicker({
   );
 }
 
-/** Read logs and loading from cache for initial client paint (avoids flash of loading). */
-function getInitialLogsFromCache(): { logs: LogEntry[]; loading: boolean } {
-  if (typeof document === "undefined") return { logs: [], loading: true };
-  const r = thisWeek();
-  const extendedFrom = dayBefore(r.from);
-  const cached = parseLogsCache(getCookie(LOGS_CACHE_COOKIE));
-  const hit = cached && cached.from === extendedFrom && cached.to === r.to;
-  return {
-    logs: hit ? (cached.logs as LogEntry[]) : [],
-    loading: !hit,
-  };
-}
-
 export default function HistoryPage() {
   const { authResolved, isAuthenticated } = useAuth();
-  const [logs, setLogs] = useState<LogEntry[]>(() =>
-    getInitialLogsFromCache().logs
-  );
-  const [loading, setLoading] = useState(() =>
-    getInitialLogsFromCache().loading
-  );
+  const { getLogsByRange, saveLog, initialized } = useLogCache();
   const [range, setRange] = useState(() => thisWeek());
   const [isEditMode, setEditMode] = useState(false);
   const [editForm, setEditForm] = useState<EditFormState | null>(null);
@@ -269,39 +224,13 @@ export default function HistoryPage() {
     [range.from]
   );
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setLoading(false);
-      return;
-    }
-    const extendedFrom = dayBefore(fetchRange.from);
-    const cached = parseLogsCache(getCookie(LOGS_CACHE_COOKIE));
-    const cacheHit =
-      cached &&
-      cached.from === extendedFrom &&
-      cached.to === fetchRange.to;
-    if (cacheHit) {
-      setLogs(cached.logs);
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
-    fetch(
-      `/api/logs?from=${extendedFrom}&to=${fetchRange.to}`,
-      { credentials: "include", cache: "no-store" }
-    )
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data: LogEntry[]) => {
-        setLogs(data);
-        setLogsCacheCookie({
-          from: extendedFrom,
-          to: fetchRange.to,
-          logs: data,
-        });
-      })
-      .catch(() => setLogs([]))
-      .finally(() => setLoading(false));
-  }, [isAuthenticated, fetchRange.from, fetchRange.to]);
+  // Logs derived from unified cache — no fetch needed
+  const extendedFrom = dayBefore(fetchRange.from);
+  const logs = useMemo(
+    () => getLogsByRange(extendedFrom, fetchRange.to),
+    [getLogsByRange, extendedFrom, fetchRange.to]
+  );
+  const loading = !initialized;
 
   const logsByDate = useMemo(() => {
     const map = new Map<string, LogEntry>();
@@ -541,59 +470,20 @@ export default function HistoryPage() {
       return isRowDirty(date, row);
     });
 
-    // Optimistic update: show new values immediately and exit edit mode
-    setLogs((prev) => {
-      const byDate = new Map(prev.map((row) => [row.date, row]));
-      for (const date of dirtyDates) {
-        const existing = byDate.get(date) ?? {
-          id: "",
-          date,
-          weight: null,
-          carbs_g: null,
-          protein_g: null,
-          fat_g: null,
-        };
-        const row = editForm[date];
-        if (row) {
-          byDate.set(date, { ...existing, ...row });
-        }
-      }
-      return Array.from(byDate.values());
-    });
     setEditForm(null);
     setEditMode(false);
     setActiveCell(null);
     setActiveCellInputValue("");
 
-    // Persist to server, then update cache with server response
-    const results = await Promise.all(
-      dirtyDates.map((date) =>
-        fetch("/api/logs", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            date,
-            ...editForm[date],
-          }),
-        }).then((r) => (r.ok ? r.json() : null))
-      )
+    // Save all dirty rows via the unified cache (optimistic + persisted)
+    await Promise.all(
+      dirtyDates.map((date) => {
+        const row = editForm[date];
+        if (!row) return Promise.resolve();
+        return saveLog({ date, ...row });
+      })
     );
-    const updated = results.filter((r): r is LogEntry => r != null);
-    if (updated.length > 0) {
-      setLogs((prev) => {
-        const byDate = new Map(prev.map((row) => [row.date, row]));
-        for (const row of updated) byDate.set(row.date, row);
-        const next = Array.from(byDate.values());
-        setLogsCacheCookie({
-          from: dayBefore(fetchRange.from),
-          to: fetchRange.to,
-          logs: next,
-        });
-        return next;
-      });
-    }
-  }, [editForm, weekDates, getLogForDate, isRowDirty, fetchRange.from, fetchRange.to]);
+  }, [editForm, weekDates, getLogForDate, isRowDirty, saveLog]);
 
   const handleEditOpen = useCallback(() => {
     setEditForm(buildFormFromLogs());
