@@ -12,7 +12,7 @@ function clamp(v: number): number {
 }
 
 function formatWeight(v: number): string {
-  return v.toFixed(1);
+  return v % 1 === 0 ? String(v) : v.toFixed(1);
 }
 
 type WeightStepperProps = {
@@ -194,7 +194,7 @@ export function WeightStepper({
                 : "text-green-500 dark:text-green-400"
             )}
           >
-            {delta > 0 ? "↑" : "↓"} {Math.abs(delta).toFixed(1)} lbs
+            {delta > 0 ? "↑" : "↓"} {formatWeight(Math.abs(delta))} lbs
           </span>
         )}
       </div>

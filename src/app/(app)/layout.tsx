@@ -2,6 +2,7 @@ import { AuthProvider } from "@/components/auth-provider";
 import { BottomNav } from "@/components/bottom-nav";
 import { LogCacheProvider } from "@/components/log-cache-provider";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
+import { UserPrefsProvider } from "@/components/user-prefs-provider";
 import { WoodlandThemeProvider } from "@/components/woodland-theme-provider";
 import { BarChart2, History, Home, PenLine, Trophy, User } from "lucide-react";
 import Link from "next/link";
@@ -17,8 +18,10 @@ export default async function AppLayout({
   const session = await getSession();
   const profile = session ? await getProfile() : null;
   const initialTheme = (profile as { theme?: string } | null)?.theme ?? "cottagecore";
+  const weekStartsOn = ((profile as { week_start?: number } | null)?.week_start ?? 1) as 0 | 1;
   return (
     <AuthProvider initialAuth={!!session}>
+    <UserPrefsProvider weekStartsOn={weekStartsOn}>
     <WoodlandThemeProvider initialThemeId={initialTheme}>
     <LogCacheProvider>
     <div className="min-h-screen bg-background text-foreground">
@@ -85,6 +88,7 @@ export default async function AppLayout({
     </div>
     </LogCacheProvider>
     </WoodlandThemeProvider>
+    </UserPrefsProvider>
     </AuthProvider>
   );
 }

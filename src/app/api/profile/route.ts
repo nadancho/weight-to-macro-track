@@ -6,6 +6,7 @@ import { z } from "zod";
 const patchBodySchema = z.object({
   display_name: z.string().optional(),
   theme: z.string().optional(),
+  week_start: z.number().int().min(0).max(1).optional(),
 });
 
 export async function GET() {

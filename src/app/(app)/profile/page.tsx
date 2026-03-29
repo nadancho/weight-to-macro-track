@@ -7,16 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PinInput } from "@/components/ui/pin-input";
 import { ThemePicker } from "@/components/theme-picker";
-import { KeyRound, LogIn, LogOut, Save } from "lucide-react";
+import { CalendarDays, KeyRound, LogIn, LogOut, Save } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 
 const PIN_LENGTH = 6;
 
 type Profile = {
   id: string;
   display_name: string | null;
+  week_start: number;
   created_at: string;
   updated_at: string;
 };
@@ -121,9 +123,51 @@ export default function ProfilePage() {
     );
   }
 
+  const handleToggleWeekStart = async () => {
+    if (!profile) return;
+    const newValue = profile.week_start === 0 ? 1 : 0;
+    setProfile({ ...profile, week_start: newValue });
+    await fetch("/api/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ week_start: newValue }),
+    });
+    router.refresh();
+  };
+
   return (
     <div className="space-y-6 max-w-md">
     <ThemePicker />
+    <Card>
+      <CardContent className="py-4">
+        <button
+          type="button"
+          onClick={handleToggleWeekStart}
+          className="flex w-full items-center justify-between gap-3 active:scale-[0.98] transition-transform"
+        >
+          <div className="flex items-center gap-2">
+            <CalendarDays className="size-5 text-muted-foreground" aria-hidden />
+            <span className="text-sm font-medium">Start week on Sunday</span>
+          </div>
+          <div
+            className={cn(
+              "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors",
+              profile?.week_start === 0
+                ? "bg-primary"
+                : "bg-muted"
+            )}
+          >
+            <span
+              className={cn(
+                "inline-block size-4 rounded-full bg-background shadow-sm transition-transform",
+                profile?.week_start === 0 ? "translate-x-5" : "translate-x-0.5"
+              )}
+            />
+          </div>
+        </button>
+      </CardContent>
+    </Card>
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Profile</CardTitle>

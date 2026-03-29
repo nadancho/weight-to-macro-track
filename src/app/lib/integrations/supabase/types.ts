@@ -19,6 +19,7 @@ export interface Database {
           id: string;
           display_name: string | null;
           theme: string;
+          week_start: number;
           created_at: string;
           updated_at: string;
         };
@@ -26,6 +27,7 @@ export interface Database {
           id: string;
           display_name?: string | null;
           theme?: string;
+          week_start?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -33,6 +35,7 @@ export interface Database {
           id?: string;
           display_name?: string | null;
           theme?: string;
+          week_start?: number;
           created_at?: string;
           updated_at?: string;
         };
