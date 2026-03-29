@@ -2,7 +2,7 @@ import { createClient } from "@/app/lib/integrations/supabase/server";
 import { createAdminClient } from "@/app/lib/integrations/supabase/admin";
 import { NextResponse } from "next/server";
 
-const ADMIN_UUID = "48b3ea43-dc0b-48dc-b4ae-b2144f21d564";
+import { ADMIN_UUID } from "@/app/lib/constants";
 
 export async function GET(request: Request) {
   const supabase = await createClient();

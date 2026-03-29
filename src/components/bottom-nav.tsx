@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { BarChart2, History, PenLine, Trophy, User } from "lucide-react";
+import { BarChart2, History, PenLine, TreePine, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -9,7 +9,7 @@ const tabs = [
   { href: "/", icon: PenLine, label: "Log" },
   { href: "/history", icon: History, label: "History" },
   { href: "/dashboard", icon: BarChart2, label: "Dashboard" },
-  { href: "/collection", icon: Trophy, label: "Badges" },
+  { href: "/grove", icon: TreePine, label: "Grove" },
   { href: "/profile", icon: User, label: "Profile" },
 ] as const;
 

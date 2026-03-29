@@ -4,7 +4,7 @@ import { LogCacheProvider } from "@/components/log-cache-provider";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { UserPrefsProvider } from "@/components/user-prefs-provider";
 import { WoodlandThemeProvider } from "@/components/woodland-theme-provider";
-import { BarChart2, History, PenLine, Trophy, User } from "lucide-react";
+import { BarChart2, History, PenLine, TreePine, User } from "lucide-react";
 import Link from "next/link";
 import { getSession } from "@/app/lib/modules/auth";
 import { getProfile } from "@/app/lib/modules/profiles";
@@ -62,11 +62,11 @@ export default async function AppLayout({
                 <span className="hidden sm:inline">Dashboard</span>
               </Link>
               <Link
-                href="/collection"
+                href="/grove"
                 className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-accent"
               >
-                <Trophy className="h-4 w-4" aria-hidden />
-                <span className="hidden sm:inline">Badges</span>
+                <TreePine className="h-4 w-4" aria-hidden />
+                <span className="hidden sm:inline">Grove</span>
               </Link>
               <Link
                 href="/profile"
