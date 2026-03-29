@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { BarChart2, History, PenLine, User } from "lucide-react";
+import { BarChart2, History, PenLine, Trophy, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -9,6 +9,7 @@ const tabs = [
   { href: "/", icon: PenLine, label: "Log" },
   { href: "/history", icon: History, label: "History" },
   { href: "/dashboard", icon: BarChart2, label: "Dashboard" },
+  { href: "/collection", icon: Trophy, label: "Badges" },
   { href: "/profile", icon: User, label: "Profile" },
 ] as const;
 
@@ -19,7 +20,7 @@ export function BottomNav() {
     <nav
       className={cn(
         "fixed bottom-0 left-0 right-0 z-50 sm:hidden",
-        "border-t border-white/[0.1] bg-background/60 backdrop-blur-xl"
+        "border-t border-border bg-background"
       )}
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >

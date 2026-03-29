@@ -20,6 +20,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { PinInput } from "@/components/ui/pin-input";
 import { useLogCache } from "@/components/log-cache-provider";
 import { WeightStepper } from "@/components/weight-stepper";
+import { Toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { Raccoon } from "@/components/raccoon";
 
@@ -459,14 +460,6 @@ export default function HomePage() {
               )}
             </span>
           </div>
-          {message && (
-            <p className={cn(
-              "text-sm text-center",
-              message.type === "ok" ? "text-green-600 dark:text-green-400" : "text-destructive"
-            )}>
-              {message.text}
-            </p>
-          )}
           <Button type="submit" className="w-full min-h-[44px]">
             <Save className="size-4 shrink-0" aria-hidden />
             Save log
@@ -475,6 +468,11 @@ export default function HomePage() {
       </CardContent>
     </Card>
     {showRaccoon > 0 && <Raccoon key={showRaccoon} />}
+    <Toast
+      message={message?.text ?? null}
+      type={message?.type}
+      onDismiss={() => setMessage(null)}
+    />
     </div>
   );
 }

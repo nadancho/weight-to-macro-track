@@ -58,6 +58,11 @@ Protected paths (redirect to `/` if no session): `/history`, `/profile`
 Auth-only paths (redirect to `/` if session exists): `/sign-up`
 Middleware at `src/middleware.ts` handles this.
 
+## UI Rules
+
+- **No layout shifts for feedback.** Success/error messages must not push content around. Use toasts, overlays, or inline indicators that don't change the document flow.
+- **44px minimum touch targets** on all interactive elements for mobile.
+
 ## Testing
 
 Vitest, node environment. Test files: `src/**/*.test.ts`. Tests live alongside modules.
