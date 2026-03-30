@@ -8,7 +8,7 @@ import { BarChart2, History, PenLine, TreePine, User } from "lucide-react";
 import Link from "next/link";
 import { getSession } from "@/app/lib/modules/auth";
 import { getProfile } from "@/app/lib/modules/profiles";
-import { OverscrollCreature } from "@/components/overscroll-creature";
+import { WoodlandReveal } from "@/components/woodland-reveal";
 import { PageHeader } from "@/components/page-header";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -88,7 +88,7 @@ export default async function AppLayout({
       >
         {children}
       </main>
-      <OverscrollCreature />
+      <WoodlandReveal />
       <BottomNav />
       <PwaInstallPrompt />
     </div>
