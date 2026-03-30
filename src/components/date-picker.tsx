@@ -263,7 +263,7 @@ export function DatePicker({
         onClick={() => onExpandedChange(!expanded)}
         className="flex w-full items-center justify-between rounded-lg px-1 py-1 active:scale-[0.98] transition-transform"
       >
-        <p className="text-base font-bold tracking-tight">
+        <p className="text-lg font-bold tracking-tight">
           {format(new Date(selectedDate + "T12:00:00"), "EEEE, MMM d")}
         </p>
         <div className="flex items-center gap-2">

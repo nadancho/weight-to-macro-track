@@ -260,7 +260,7 @@ export default function HomePage() {
           <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Daily Log</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-5 text-base">
+          <form onSubmit={handleSubmit} className="space-y-4 text-base">
             <DatePicker
               selectedDate={date}
               onSelect={(d) => {
@@ -300,7 +300,7 @@ export default function HomePage() {
                 onClick={() => fileInputRef.current?.click()}
                 className={cn(
                   "flex items-center justify-center gap-2 rounded-lg bg-secondary text-foreground font-medium",
-                  "min-h-[44px] py-3 text-sm transition-[colors,transform] duration-75 active:scale-[0.97]",
+                  "min-h-[44px] py-3 text-xs transition-[colors,transform] duration-75 active:scale-[0.97]",
                   "hover:bg-accent",
                   extracting && "pointer-events-none opacity-50"
                 )}
@@ -316,7 +316,7 @@ export default function HomePage() {
             <div className="space-y-2">
               <Label
                 htmlFor="carbs"
-                className="inline-flex items-center gap-1.5 text-macro-carbs"
+                className="inline-flex items-center gap-1.5 text-xs text-macro-carbs"
               >
                 <Croissant className="size-4 shrink-0 text-macro-carbs" aria-hidden />
                 Carbs (g)
@@ -340,7 +340,7 @@ export default function HomePage() {
             <div className="space-y-2">
               <Label
                 htmlFor="protein"
-                className="inline-flex items-center gap-1.5 text-macro-protein"
+                className="inline-flex items-center gap-1.5 text-xs text-macro-protein"
               >
                 <Beef className="size-4 shrink-0 text-macro-protein" aria-hidden />
                 Protein (g)
@@ -364,7 +364,7 @@ export default function HomePage() {
             <div className="space-y-2">
               <Label
                 htmlFor="fat"
-                className="inline-flex items-center gap-1.5 text-macro-fat"
+                className="inline-flex items-center gap-1.5 text-xs text-macro-fat"
               >
                 <Droplet className="size-4 shrink-0 text-macro-fat" aria-hidden />
                 Fat (g)
@@ -391,7 +391,7 @@ export default function HomePage() {
               <Flame className="size-4 shrink-0" aria-hidden />
               Calories
             </span>
-            <span className="text-sm font-semibold tabular-nums">
+            <span className="text-lg font-semibold tabular-nums">
               {macrosToCalories(
                 carbs_g ? Number(carbs_g) : null,
                 protein_g ? Number(protein_g) : null,
