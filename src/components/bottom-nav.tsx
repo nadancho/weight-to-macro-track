@@ -1,22 +1,37 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { BarChart2, History, PenLine, User } from "lucide-react";
+import { useAuth } from "@/components/auth-provider";
+import { ADMIN_UUID } from "@/app/lib/constants";
+import { BarChart2, History, PenLine, Shield, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { LucideIcon } from "lucide-react";
 
-const tabs = [
+interface Tab {
+  href: string;
+  icon: LucideIcon;
+  label: string;
+  adminOnly?: boolean;
+}
+
+const tabs: Tab[] = [
   { href: "/", icon: PenLine, label: "Log" },
   { href: "/history", icon: History, label: "History" },
   { href: "/dashboard", icon: BarChart2, label: "Dashboard" },
   { href: "/profile", icon: User, label: "Profile" },
-] as const;
+  { href: "/admin", icon: Shield, label: "Admin", adminOnly: true },
+];
 
 /** Nav content height (excludes safe area). Matches min-h on tab items. */
 export const NAV_HEIGHT = 48;
 
 export function BottomNav() {
   const pathname = usePathname();
+  const { userId } = useAuth();
+  const isAdmin = userId === ADMIN_UUID;
+
+  const visibleTabs = isAdmin ? tabs : tabs.filter((t) => !t.adminOnly);
 
   return (
     <nav
@@ -26,13 +41,11 @@ export function BottomNav() {
       )}
       style={{
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        // Expose total nav height (content + safe area) for other components
-        // Usage: var(--bottom-nav-height)
         ["--bottom-nav-height" as string]: `calc(${NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
       } as React.CSSProperties}
     >
       <div className="mx-auto flex max-w-4xl items-center justify-around">
-        {tabs.map(({ href, icon: Icon, label }) => {
+        {visibleTabs.map(({ href, icon: Icon, label }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
             <Link

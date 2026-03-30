@@ -134,26 +134,37 @@ function RustleText({ rustle }: { rustle: RustleConfig }) {
 }
 
 function PawButton({ onTap }: { onTap: () => void }) {
+  // Random horizontal position within the content area
+  const leftPercent = useMemo(() => 15 + Math.random() * 70, []);
+
   return (
-    <motion.button
-      initial={{ scale: 0, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      exit={{ scale: 0, opacity: 0 }}
-      transition={{ type: "spring", stiffness: 400, damping: 20 }}
-      whileTap={{ scale: 0.9 }}
-      onClick={onTap}
-      className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-accent/60 shadow-md active:bg-accent/80"
+    <div
+      className="relative"
       style={{
-        // Enough margin to sit above the fixed bottom nav
-        marginTop: 24,
-        marginBottom: `calc(24px + ${NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
+        height: 80,
+        marginBottom: `calc(${NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
       }}
-      aria-label="Reveal woodland creature"
     >
-      <span className="text-3xl" role="img" aria-hidden>
-        🐾
-      </span>
-    </motion.button>
+      <motion.button
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 400, damping: 20 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={onTap}
+        className="absolute flex h-16 w-16 items-center justify-center rounded-full bg-accent/60 shadow-md active:bg-accent/80"
+        style={{
+          left: `${leftPercent}%`,
+          transform: "translateX(-50%)",
+          top: 8,
+        }}
+        aria-label="Reveal woodland creature"
+      >
+        <span className="text-3xl" role="img" aria-hidden>
+          🐾
+        </span>
+      </motion.button>
+    </div>
   );
 }
 
@@ -167,21 +178,19 @@ export function WoodlandReveal() {
   const isAdmin = userId === ADMIN_UUID;
   const hasLoggedToday = initialized && !!getLog(todayStr());
 
-  // DEBUG: log gate state to help diagnose visibility issues
-  useEffect(() => {
-    console.log("[WoodlandReveal]", { userId, isAdmin, initialized, hasLoggedToday, today: todayStr() });
-  }, [userId, isAdmin, initialized, hasLoggedToday]);
+  // DEBUG: always render to test visibility
+  console.log("[WoodlandReveal]", { userId, isAdmin, initialized, hasLoggedToday, today: todayStr() });
 
   const encounter = useMemo(() => {
-    if (!isAdmin) return null;
-    const chance = isAdmin ? ADMIN_ENCOUNTER_CHANCE : ENCOUNTER_CHANCE;
-    if (Math.random() > chance) return null;
     const creature = CREATURES[Math.floor(Math.random() * CREATURES.length)];
-    const xPercent = 25 + Math.random() * 50;
+    // Keep creatures within the lit clearing area of woodland-bg.jpg (~30-65%)
+    const xPercent = 30 + Math.random() * 35;
     return { creature, xPercent };
-  }, [isAdmin]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  if (!encounter || !hasLoggedToday) return null;
+  // TODO: restore gates after debugging
+  // if (!encounter || !hasLoggedToday) return null;
 
   return <WoodlandScene creature={encounter.creature} xPercent={encounter.xPercent} />;
 }
@@ -302,8 +311,38 @@ function WoodlandClearing({
   creature: (typeof CREATURES)[number];
   xPercent: number;
 }) {
+  useEffect(() => {
+    const html = document.documentElement;
+    html.style.overscrollBehaviorY = "none";
+
+    // Clamp scroll so the clearing's bottom edge is the hard stop.
+    // Uses requestAnimationFrame for smooth clamping without jank.
+    let raf: number;
+    const clampScroll = () => {
+      const el = document.getElementById("woodland-clearing");
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      // If bottom of clearing is above viewport bottom, we've scrolled too far
+      if (rect.bottom < window.innerHeight) {
+        const overshoot = window.innerHeight - rect.bottom;
+        window.scrollBy(0, -overshoot);
+      }
+    };
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(clampScroll);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => {
+      html.style.overscrollBehaviorY = "";
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
   return (
-    <div className="pointer-events-none select-none relative">
+    <div id="woodland-clearing" className="pointer-events-none select-none relative overflow-hidden">
       <img
         src="/woodland-bg.jpg"
         alt=""
