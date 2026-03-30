@@ -72,13 +72,13 @@ export function WeightStepper({
 
   const btnBase = "flex items-center justify-center rounded-full active:scale-95 transition-transform select-none tabular-nums";
   // Large arrow buttons for ±0.1 (primary action, hit repeatedly)
-  const btnFine = cn(btnBase, "h-12 w-12 bg-secondary text-foreground border border-border");
+  const btnFine = cn(btnBase, "h-14 w-14 bg-secondary text-foreground border border-border");
   // Small text buttons for ±1
-  const btnCoarse = cn(btnBase, "h-11 w-11 border border-border/60 text-muted-foreground text-xs font-medium");
+  const btnCoarse = cn(btnBase, "h-12 w-12 border border-border/60 text-muted-foreground text-sm font-medium");
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-1.5 text-sm font-medium">
+    <div className="space-y-3 py-2">
+      <div className="flex items-center gap-1.5 text-sm font-medium mb-2">
         <Scale className="size-4 shrink-0 text-foreground" aria-hidden />
         Weight (lbs)
       </div>
@@ -95,7 +95,7 @@ export function WeightStepper({
       </div>
 
       {/* Stepper row: -1, -0.1, display, +0.1, +1 */}
-      <div className="flex items-center justify-center gap-2">
+      <div className="flex items-center justify-center gap-3">
         <button
           type="button"
           onClick={() => adjust(-1)}
@@ -110,11 +110,11 @@ export function WeightStepper({
           className={btnFine}
           aria-label="Decrease weight by 0.1 lbs"
         >
-          <ChevronDown className="size-5" />
+          <ChevronDown className="size-6" />
         </button>
 
         <div
-          className="flex flex-col items-center min-w-[100px]"
+          className="flex flex-col items-center min-w-[110px]"
           onClick={!editing ? enterEditMode : undefined}
           role={!editing ? "button" : undefined}
           tabIndex={!editing ? 0 : undefined}
@@ -171,7 +171,7 @@ export function WeightStepper({
           className={btnFine}
           aria-label="Increase weight by 0.1 lbs"
         >
-          <ChevronUp className="size-5" />
+          <ChevronUp className="size-6" />
         </button>
         <button
           type="button"

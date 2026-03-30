@@ -8,6 +8,9 @@ const config: Config = {
   ],
   darkMode: "class",
   theme: {
+    fontFamily: {
+      sans: ["var(--font-outfit)", "system-ui", "sans-serif"],
+    },
     extend: {
       colors: {
         border: "hsl(var(--border, 214 32% 91%))",

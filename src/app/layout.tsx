@@ -1,6 +1,12 @@
 import type { Metadata, Viewport } from "next";
+import { Outfit } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
+});
 
 export const metadata: Metadata = {
   title: "Weight Gain Tracker",
@@ -41,7 +47,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body>
+      <body className={`${outfit.variable} font-sans`}>
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
