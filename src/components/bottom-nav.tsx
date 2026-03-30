@@ -12,6 +12,9 @@ const tabs = [
   { href: "/profile", icon: User, label: "Profile" },
 ] as const;
 
+/** Nav content height (excludes safe area). Matches min-h on tab items. */
+export const NAV_HEIGHT = 48;
+
 export function BottomNav() {
   const pathname = usePathname();
 
@@ -21,7 +24,12 @@ export function BottomNav() {
         "fixed bottom-0 left-0 right-0 z-50 sm:hidden",
         "border-t border-border bg-background"
       )}
-      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      style={{
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        // Expose total nav height (content + safe area) for other components
+        // Usage: var(--bottom-nav-height)
+        ["--bottom-nav-height" as string]: `calc(${NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
+      } as React.CSSProperties}
     >
       <div className="mx-auto flex max-w-4xl items-center justify-around">
         {tabs.map(({ href, icon: Icon, label }) => {
