@@ -7,13 +7,11 @@ import {
   setCookie,
 } from "@/app/lib/utils/cookies";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { addDays, format, subDays } from "date-fns";
-import { AnimatePresence, motion } from "framer-motion";
-import { Beef, Camera, ChevronDown, Croissant, Droplet, Flame, LogIn, Save } from "lucide-react";
+import { Beef, Camera, Croissant, Droplet, Flame, LogIn, Save } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -23,7 +21,7 @@ import { WeightStepper } from "@/components/weight-stepper";
 import { Toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { Raccoon } from "@/components/raccoon";
-import { WeekStrip } from "@/components/week-strip";
+import { DatePicker } from "@/components/date-picker";
 import { useUserPrefs } from "@/components/user-prefs-provider";
 
 const LAST_LOG_DATE_KEY = "last_log_date";
@@ -259,95 +257,23 @@ export default function HomePage() {
     <div className="flex flex-col items-center w-full">
       <Card className="max-w-md w-full shadow-sm">
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg">Log day</CardTitle>
-          <p className="text-xs text-muted-foreground">
-            One log per day. Submitting again updates that day.
-          </p>
+          <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Daily Log</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5 text-base">
-            <div className="space-y-2">
-              <WeekStrip
-                selectedDate={date}
-                onSelect={(d) => {
-                  changeDate(d);
-                  setCalendarMonth(new Date(d + "T12:00:00"));
-                }}
-                weekStartsOn={weekStartsOn}
-                loggedDates={loggedDates}
-              />
-              <button
-                type="button"
-                onClick={() => setCalendarOpen((o) => !o)}
-                className="flex w-full items-center justify-between rounded-lg bg-muted/50 px-2 py-1.5 active:scale-[0.98] transition-transform"
-              >
-                <p className="text-xs font-medium tracking-tight text-muted-foreground">
-                  {date ? format(new Date(date + "T12:00:00"), "EEEE, MMM d") : "Pick a date"}
-                </p>
-                <div className="flex items-center gap-2">
-                  {date !== todayISO() && (
-                    <span
-                      className="text-xs font-medium text-primary hover:text-foreground transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        changeDate(todayISO());
-                        setCalendarMonth(new Date());
-                      }}
-                    >
-                      Today
-                    </span>
-                  )}
-                  <ChevronDown
-                    className={cn(
-                      "size-3.5 text-muted-foreground transition-transform duration-200",
-                      calendarOpen && "rotate-180"
-                    )}
-                  />
-                </div>
-              </button>
-              <AnimatePresence initial={false}>
-                {calendarOpen && (
-                  <motion.div
-                    key="calendar"
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2, ease: "easeInOut" }}
-                    className="overflow-hidden"
-                  >
-                    <Calendar
-                      mode="single"
-                      required
-                      weekStartsOn={weekStartsOn}
-                      selected={date ? new Date(date + "T12:00:00") : undefined}
-                      month={calendarMonth}
-                      onMonthChange={setCalendarMonth}
-                      onSelect={(selected) => {
-                        if (!selected) return;
-                        changeDate(selected.toISOString().slice(0, 10));
-                        if (
-                          selected.getMonth() !== calendarMonth.getMonth() ||
-                          selected.getFullYear() !== calendarMonth.getFullYear()
-                        ) {
-                          setCalendarMonth(selected);
-                        }
-                        setTimeout(() => setCalendarOpen(false), 200);
-                      }}
-                      modifiers={{
-                        logged: (d: Date) => {
-                          const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-                          return loggedDates.has(iso);
-                        },
-                      }}
-                      modifiersClassNames={{
-                        logged: "day-logged",
-                      }}
-                      className="w-full pb-2"
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+            <DatePicker
+              selectedDate={date}
+              onSelect={(d) => {
+                changeDate(d);
+                setCalendarMonth(new Date(d + "T12:00:00"));
+              }}
+              weekStartsOn={weekStartsOn}
+              loggedDates={loggedDates}
+              expanded={calendarOpen}
+              onExpandedChange={setCalendarOpen}
+              displayMonth={calendarMonth}
+              onDisplayMonthChange={setCalendarMonth}
+            />
             <WeightStepper
               value={weight}
               onChange={setWeight}

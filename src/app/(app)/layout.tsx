@@ -33,7 +33,7 @@ export default async function AppLayout({
         Skip to content
       </a>
       <header
-        className="sticky top-0 z-50 border-b border-white/[0.1] bg-background/60 backdrop-blur-xl"
+        className="hidden sm:block sticky top-0 z-50 border-b border-white/[0.1] bg-background/60 backdrop-blur-xl"
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <nav className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3">
@@ -80,7 +80,13 @@ export default async function AppLayout({
           </div>
         </nav>
       </header>
-      <main id="main-content" className="mx-auto max-w-4xl px-4 py-6 pb-24 sm:pb-6">{children}</main>
+      <main
+        id="main-content"
+        className="mx-auto max-w-4xl px-4 py-6 pb-24 sm:pb-6"
+        style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 1.5rem)" }}
+      >
+        {children}
+      </main>
       <BottomNav />
       <PwaInstallPrompt />
     </div>
