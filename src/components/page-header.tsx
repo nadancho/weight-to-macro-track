@@ -1,14 +1,13 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { BarChart2, History, PenLine, Trophy, User } from "lucide-react";
+import { BarChart2, History, PenLine, User } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 const ROUTE_META: Record<string, { title: string; icon: LucideIcon }> = {
   "/": { title: "Log", icon: PenLine },
   "/history": { title: "History", icon: History },
   "/dashboard": { title: "Dashboard", icon: BarChart2 },
-  "/collection": { title: "Badges", icon: Trophy },
   "/profile": { title: "Profile", icon: User },
 };
 
