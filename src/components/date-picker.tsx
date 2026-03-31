@@ -145,12 +145,12 @@ function DayCell({
       >
         {day.dayNum}
       </span>
-      <div className="h-1 flex items-center justify-center">
+      <div className="h-1.5 flex items-center justify-center">
         {isLogged && (
           <div
             className={cn(
-              "size-1 rounded-full",
-              isSelected ? "bg-background/60" : "bg-primary/60"
+              "size-1.5 rounded-full",
+              isSelected ? "bg-background" : "bg-primary"
             )}
           />
         )}
