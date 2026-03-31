@@ -153,7 +153,9 @@ function DayCell({
             className={cn(
               "size-3",
               isSelected
-                ? "text-background/70"
+                ? logStatus === "same-day"
+                  ? "text-green-700"
+                  : "text-yellow-600"
                 : logStatus === "same-day"
                   ? "text-green-400/80"
                   : "text-yellow-400/80"
