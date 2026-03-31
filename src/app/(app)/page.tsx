@@ -1,6 +1,7 @@
 "use client";
 
 import { AuthLoadingSkeleton, useAuth } from "@/components/auth-provider";
+import { ADMIN_UUID } from "@/app/lib/constants";
 import { macrosToCalories } from "@/app/lib/utils/calories";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,7 +31,7 @@ function prevDayISO(dateISO: string): string {
 
 export default function HomePage() {
   const router = useRouter();
-  const { authResolved, isAuthenticated, setAuth } = useAuth();
+  const { authResolved, isAuthenticated, setAuth, userId } = useAuth();
   const { getLog, getLogsByRange, saveLog } = useLogCache();
   const { weekStartsOn } = useUserPrefs();
   const [date, setDate] = useState(todayISO);
@@ -166,7 +167,10 @@ export default function HomePage() {
     e.preventDefault();
     setMessage(null);
     setMessage({ type: "ok", text: "Saved." });
-    window.dispatchEvent(new CustomEvent("woodland:save"));
+    // Pawprint animation: admin sees it every save, others on first log of the day
+    if (userId === ADMIN_UUID || !loggedDates.has(date)) {
+      window.dispatchEvent(new CustomEvent("woodland:save"));
+    }
 
     // Fire and forget — cache updates optimistically, API persists in background
     saveLog({

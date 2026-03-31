@@ -2,8 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "@/components/auth-provider";
-import { ADMIN_UUID } from "@/app/lib/constants";
 
 // --- Phase machine ---
 
@@ -231,13 +229,8 @@ function RustleText({ rustle }: { rustle: RustleConfig }) {
 
 // --- Main components ---
 
-/** Outer gate — admin-only feature flag for now */
+/** Pawprint trail celebration — triggers on first log of the day */
 export function WoodlandReveal() {
-  const { userId } = useAuth();
-  const isAdmin = userId === ADMIN_UUID;
-
-  if (!isAdmin) return null;
-
   return <WoodlandScene />;
 }
 
