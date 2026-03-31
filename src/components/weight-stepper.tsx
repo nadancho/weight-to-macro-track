@@ -83,12 +83,12 @@ export function WeightStepper({
         Weight (lbs)
       </div>
 
-      {/* Previous day reference */}
-      <div className="text-center">
+      {/* Previous day reference — fixed height to prevent layout shift */}
+      <div className="text-center h-4">
         {loading ? (
           <div className="h-4 w-32 mx-auto rounded bg-muted animate-pulse" />
         ) : previousDayWeight !== null ? (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground leading-4">
             {previousLabel}: {formatWeight(previousDayWeight)} lbs
           </p>
         ) : null}

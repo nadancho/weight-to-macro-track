@@ -2,10 +2,6 @@
 
 import { AuthLoadingSkeleton, useAuth } from "@/components/auth-provider";
 import { macrosToCalories } from "@/app/lib/utils/calories";
-import {
-  getCookie,
-  setCookie,
-} from "@/app/lib/utils/cookies";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,16 +19,9 @@ import { cn } from "@/lib/utils";
 import { DatePicker } from "@/components/date-picker";
 import { useUserPrefs } from "@/components/user-prefs-provider";
 
-const LAST_LOG_DATE_KEY = "last_log_date";
-
 function todayISO(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function parseDateCookie(value: string | null): string | null {
-  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-  return value;
 }
 
 function prevDayISO(dateISO: string): string {
@@ -44,8 +33,8 @@ export default function HomePage() {
   const { authResolved, isAuthenticated, setAuth } = useAuth();
   const { getLog, getLogsByRange, saveLog } = useLogCache();
   const { weekStartsOn } = useUserPrefs();
-  const [date, setDate] = useState(() => parseDateCookie(getCookie(LAST_LOG_DATE_KEY)) ?? todayISO());
-  const [calendarMonth, setCalendarMonth] = useState(() => new Date(parseDateCookie(getCookie(LAST_LOG_DATE_KEY)) ?? todayISO() + "T12:00:00"));
+  const [date, setDate] = useState(todayISO);
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [weight, setWeight] = useState<number | null>(null);
   const [carbs_g, setCarbsG] = useState("");
   const [protein_g, setProteinG] = useState("");
@@ -70,15 +59,24 @@ export default function HomePage() {
     return recent[0] ? { weight: recent[0].weight!, date: recent[0].date } : null;
   }, [date, getLogsByRange]);
 
-  // Logged dates — covers calendar month + surrounding weeks for the strip
+  // Logged dates — "same-day" if created_at matches the log date, "backfilled" otherwise
   const loggedDates = useMemo(() => {
     const year = calendarMonth.getFullYear();
     const month = calendarMonth.getMonth();
-    // Extend range to cover week strip outside the visible calendar month
     const from = subDays(new Date(year, month, 1), 7).toISOString().slice(0, 10);
     const lastDay = new Date(year, month + 1, 0).getDate();
     const to = addDays(new Date(year, month, lastDay), 7).toISOString().slice(0, 10);
-    return new Set(getLogsByRange(from, to).map((l) => l.date));
+    const map = new Map<string, "same-day" | "backfilled">();
+    for (const l of getLogsByRange(from, to)) {
+      if (l.created_at) {
+        // Compare the date portion of created_at (in user's local timezone) to the log date
+        const createdLocal = new Date(l.created_at).toLocaleDateString("en-CA"); // YYYY-MM-DD
+        map.set(l.date, createdLocal === l.date ? "same-day" : "backfilled");
+      } else {
+        map.set(l.date, "same-day");
+      }
+    }
+    return map;
   }, [calendarMonth, getLogsByRange]);
 
   // Prefill form from cache when date changes
@@ -119,7 +117,6 @@ export default function HomePage() {
 
   const changeDate = (next: string) => {
     setDate(next);
-    setCookie(LAST_LOG_DATE_KEY, next);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -168,7 +165,6 @@ export default function HomePage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
-    setCookie(LAST_LOG_DATE_KEY, date);
     setMessage({ type: "ok", text: "Saved." });
     window.dispatchEvent(new CustomEvent("woodland:save"));
 

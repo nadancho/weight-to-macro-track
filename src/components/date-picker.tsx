@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, PawPrint } from "lucide-react";
 import {
   addDays,
   addMonths,
@@ -18,11 +18,13 @@ import { AnimatePresence, motion } from "framer-motion";
 // Types
 // ---------------------------------------------------------------------------
 
+export type LogStatus = "same-day" | "backfilled";
+
 type DatePickerProps = {
   selectedDate: string;
   onSelect: (date: string) => void;
   weekStartsOn: 0 | 1;
-  loggedDates: Set<string>;
+  loggedDates: Map<string, LogStatus>;
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
   displayMonth: Date;
@@ -100,7 +102,7 @@ function DayCell({
   day,
   isSelected,
   isToday,
-  isLogged,
+  logStatus,
   isOutsideMonth,
   showDayName,
   onSelect,
@@ -108,7 +110,7 @@ function DayCell({
   day: DayInfo;
   isSelected: boolean;
   isToday: boolean;
-  isLogged: boolean;
+  logStatus: LogStatus | null;
   isOutsideMonth: boolean;
   showDayName: boolean;
   onSelect: () => void;
@@ -118,7 +120,7 @@ function DayCell({
       type="button"
       onClick={onSelect}
       className={cn(
-        "flex flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 min-h-[44px] transition-colors",
+        "flex flex-1 flex-col items-center justify-center gap-0.5 rounded-xl h-[44px] transition-colors",
         "active:scale-95 transition-transform duration-75",
         isSelected
           ? "bg-foreground text-background"
@@ -145,12 +147,16 @@ function DayCell({
       >
         {day.dayNum}
       </span>
-      <div className="h-1.5 flex items-center justify-center">
-        {isLogged && (
-          <div
+      <div className="h-3 flex items-center justify-center">
+        {logStatus && (
+          <PawPrint
             className={cn(
-              "size-1.5 rounded-full",
-              isSelected ? "bg-background" : "bg-primary"
+              "size-3",
+              isSelected
+                ? "text-background/70"
+                : logStatus === "same-day"
+                  ? "text-green-400/80"
+                  : "text-yellow-400/80"
             )}
           />
         )}
@@ -174,7 +180,7 @@ function WeekRow({
   week: DayInfo[];
   selectedDate: string;
   today: string;
-  loggedDates: Set<string>;
+  loggedDates: Map<string, LogStatus>;
   showDayNames: boolean;
   onSelect: (iso: string) => void;
 }) {
@@ -186,7 +192,7 @@ function WeekRow({
           day={day}
           isSelected={day.iso === selectedDate}
           isToday={day.iso === today}
-          isLogged={loggedDates.has(day.iso)}
+          logStatus={loggedDates.get(day.iso) ?? null}
           isOutsideMonth={day.isOutsideMonth}
           showDayName={showDayNames}
           onSelect={() => onSelect(day.iso)}
@@ -220,8 +226,6 @@ export function DatePicker({
 
   const activeIdx = getActiveWeekIndex(weeks, selectedDate);
   const activeWeek = weeks[activeIdx];
-  const weeksBefore = weeks.slice(0, activeIdx);
-  const weeksAfter = weeks.slice(activeIdx + 1);
   const dayNames = useMemo(() => orderedDayNames(weekStartsOn), [weekStartsOn]);
 
   // Week-key for slide animation when collapsed
@@ -244,9 +248,7 @@ export function DatePicker({
     if (d.getMonth() !== displayMonth.getMonth() || d.getFullYear() !== displayMonth.getFullYear()) {
       onDisplayMonthChange(d);
     }
-    if (expanded) {
-      setTimeout(() => onExpandedChange(false), 200);
-    }
+    // Keep calendar open — let user browse freely
   };
 
   const slideVariants = {
@@ -269,7 +271,7 @@ export function DatePicker({
         <div className="flex items-center gap-2">
           {selectedDate !== today && (
             <span
-              className="text-xs font-medium text-primary hover:text-foreground transition-colors"
+              className="text-sm font-semibold text-primary border border-primary/40 rounded-full px-2.5 py-0.5 hover:bg-primary/10 active:scale-95 transition-[colors,transform]"
               onClick={(e) => {
                 e.stopPropagation();
                 onSelect(today);
@@ -281,7 +283,7 @@ export function DatePicker({
           )}
           <ChevronDown
             className={cn(
-              "size-3.5 text-muted-foreground transition-transform duration-200",
+              "size-4.5 text-muted-foreground transition-transform duration-200",
               expanded && "rotate-180"
             )}
           />
@@ -336,9 +338,9 @@ export function DatePicker({
         )}
       </AnimatePresence>
 
-      {/* Expanded: weeks BEFORE active */}
+      {/* Expanded: all weeks in a single uniform grid */}
       <AnimatePresence>
-        {expanded && weeksBefore.length > 0 && (
+        {expanded && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
@@ -346,7 +348,7 @@ export function DatePicker({
             transition={{ duration: 0.2, ease: "easeInOut" }}
             className="overflow-hidden space-y-0.5"
           >
-            {weeksBefore.map((week) => (
+            {weeks.map((week) => (
               <WeekRow
                 key={week[0].iso}
                 week={week}
@@ -361,9 +363,9 @@ export function DatePicker({
         )}
       </AnimatePresence>
 
-      {/* ACTIVE WEEK ROW — always visible */}
-      <div className="flex items-center gap-1">
-        {!expanded && (
+      {/* Collapsed: active week with slide animation */}
+      {!expanded && (
+        <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => shiftWeek(-1)}
@@ -372,10 +374,8 @@ export function DatePicker({
           >
             <ChevronLeft className="size-4" />
           </button>
-        )}
 
-        <div className={cn("flex-1", !expanded && "overflow-hidden")}>
-          {!expanded ? (
+          <div className="flex-1 overflow-hidden">
             <AnimatePresence mode="popLayout" custom={directionRef.current}>
               <motion.div
                 key={weekKey}
@@ -396,19 +396,8 @@ export function DatePicker({
                 />
               </motion.div>
             </AnimatePresence>
-          ) : (
-            <WeekRow
-              week={activeWeek}
-              selectedDate={selectedDate}
-              today={today}
-              loggedDates={loggedDates}
-              showDayNames={false}
-              onSelect={handleDaySelect}
-            />
-          )}
-        </div>
+          </div>
 
-        {!expanded && (
           <button
             type="button"
             onClick={() => shiftWeek(1)}
@@ -417,33 +406,8 @@ export function DatePicker({
           >
             <ChevronRight className="size-4" />
           </button>
-        )}
-      </div>
-
-      {/* Expanded: weeks AFTER active */}
-      <AnimatePresence>
-        {expanded && weeksAfter.length > 0 && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: "easeInOut" }}
-            className="overflow-hidden space-y-0.5"
-          >
-            {weeksAfter.map((week) => (
-              <WeekRow
-                key={week[0].iso}
-                week={week}
-                selectedDate={selectedDate}
-                today={today}
-                loggedDates={loggedDates}
-                showDayNames={false}
-                onSelect={handleDaySelect}
-              />
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
     </div>
   );
 }

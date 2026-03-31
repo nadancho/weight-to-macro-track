@@ -19,6 +19,7 @@ export type LogEntry = {
   carbs_g: number | null;
   protein_g: number | null;
   fat_g: number | null;
+  created_at: string | null;
 };
 
 export type SaveLogPayload = {
@@ -162,6 +163,7 @@ export function LogCacheProvider({ children }: { children: React.ReactNode }) {
         carbs_g: entry.carbs_g ?? null,
         protein_g: entry.protein_g ?? null,
         fat_g: entry.fat_g ?? null,
+        created_at: logMap.get(entry.date)?.created_at ?? new Date().toISOString(),
       };
 
       // Snapshot for rollback

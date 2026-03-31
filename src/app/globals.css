@@ -111,8 +111,8 @@
     @apply bg-background text-foreground;
   }
 
-  /* Ambient gradient blobs for glass depth — uses fixed pseudo-element to avoid scroll repaints */
-  .dark body::before {
+  /* Ambient gradient blobs for glass depth — only when no woodland theme overrides the palette */
+  .dark:not([data-woodland-theme]) body::before {
     content: "";
     position: fixed;
     inset: 0;
