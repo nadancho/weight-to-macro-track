@@ -20,7 +20,6 @@ import { useLogCache } from "@/components/log-cache-provider";
 import { WeightStepper } from "@/components/weight-stepper";
 import { Toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
-import { Raccoon } from "@/components/raccoon";
 import { DatePicker } from "@/components/date-picker";
 import { useUserPrefs } from "@/components/user-prefs-provider";
 
@@ -59,7 +58,6 @@ export default function HomePage() {
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [showRaccoon, setShowRaccoon] = useState(0);
   const [calendarOpen, setCalendarOpen] = useState(false);
 
   // Previous weight — read from cache (up to 14 days back)
@@ -172,7 +170,7 @@ export default function HomePage() {
     setMessage(null);
     setCookie(LAST_LOG_DATE_KEY, date);
     setMessage({ type: "ok", text: "Saved." });
-    setShowRaccoon((k) => k + 1);
+    window.dispatchEvent(new CustomEvent("woodland:save"));
 
     // Fire and forget — cache updates optimistically, API persists in background
     saveLog({
@@ -406,7 +404,6 @@ export default function HomePage() {
         </form>
       </CardContent>
     </Card>
-    {showRaccoon > 0 && <Raccoon key={showRaccoon} />}
     <Toast
       message={message?.text ?? null}
       type={message?.type}

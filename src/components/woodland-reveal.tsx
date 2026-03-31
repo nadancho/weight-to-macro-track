@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/components/auth-provider";
-import { useLogCache } from "@/components/log-cache-provider";
 import { ADMIN_UUID } from "@/app/lib/constants";
 import { NAV_HEIGHT } from "@/components/bottom-nav";
 
@@ -21,35 +20,121 @@ const CREATURES = [
   { id: "hedgehog", src: "/sprites/hedgehog-sp1.png" },
 ];
 
-const ENCOUNTER_CHANCE = 0.35;
-const ADMIN_ENCOUNTER_CHANCE = 1.0;
 const CREATURE_SIZE = 64;
 
-// --- Leaf config ---
+// --- Phase machine ---
 
-interface LeafConfig {
-  emoji: string;
+type Phase = "idle" | "pawprints" | "leaves" | "revealed" | "fadeout";
+
+// --- Pawprint config ---
+
+const PAWPRINT_COUNT = 10;
+const PAWPRINT_STAGGER = 0.2; // seconds between each print
+const PAWPRINT_LIFESPAN = 1; // each print visible for 1 second
+const PAWPRINT_LINGER = 2; // seconds to wait after last print before fadeout
+
+interface PawprintPos {
+  /** Starting X position (vw) */
   startX: number;
-  endX: number;
-  startY: number;
-  endY: number;
+  /** Starting Y from bottom (vh) */
+  startBottom: number;
+  /** Drift X during lifespan (vw) — positive = rightward */
+  driftX: number;
+  /** Drift Y upward during lifespan (vh) */
+  driftUp: number;
   rotation: number;
-  /** Stagger delay in seconds */
   delay: number;
+}
+
+/** Generate pawprints that walk sequentially — each step near the last */
+function generatePawprints(): { prints: PawprintPos[]; glowColor: string } {
+  // Pick one glow color for the whole trail
+  const glowColor = PAW_GLOW_COLORS[Math.floor(Math.random() * PAW_GLOW_COLORS.length)];
+
+  const prints: PawprintPos[] = [];
+  // Start somewhere in the middle-ish horizontal band
+  let x = 30 + Math.random() * 40; // 30-70vw
+  let bottom = 14;
+
+  const MAX_SWAY_VW = 8;
+
+  // Random walk with momentum — direction persists for runs, then shifts
+  let directionBias = Math.random() > 0.5 ? 1 : -1;
+  // How strongly it leans (0.5 = slight, 1 = full commit to direction)
+  let lean = 0.5 + Math.random() * 0.5;
+
+  for (let i = 0; i < PAWPRINT_COUNT; i++) {
+    // 25% chance to flip direction, 15% chance to just reduce lean
+    const roll = Math.random();
+    if (roll < 0.25) {
+      directionBias *= -1;
+      lean = 0.5 + Math.random() * 0.5;
+    } else if (roll < 0.4) {
+      lean = 0.3 + Math.random() * 0.7;
+    }
+    // Bounce off edges with some urgency
+    if (x < 15) { directionBias = 1; lean = 0.7; }
+    if (x > 85) { directionBias = -1; lean = 0.7; }
+
+    const sway = directionBias * lean * (MAX_SWAY_VW * 0.3 + Math.random() * MAX_SWAY_VW * 0.7);
+    x = Math.max(10, Math.min(85, x + sway)); // clamp to screen
+    // Step upward with slight jitter
+    bottom += 5 + Math.random() * 2;
+    // Small drift during each print's lifespan
+    const driftX = (Math.random() - 0.5) * 4;
+    const driftUp = 1 + Math.random() * 2;
+
+    prints.push({
+      startX: x,
+      startBottom: bottom,
+      driftX,
+      driftUp,
+      rotation: (i % 2 === 0 ? -1 : 1) * (10 + Math.random() * 10),
+      delay: i * PAWPRINT_STAGGER,
+    });
+  }
+
+  return { prints, glowColor };
+}
+
+// Total time from first pawprint to fadeout trigger
+const PAWPRINT_TIMEOUT = (PAWPRINT_COUNT * PAWPRINT_STAGGER + PAWPRINT_LINGER) * 1000;
+
+// One glow color is chosen per trail
+const PAW_GLOW_COLORS = [
+  "rgba(139, 119, 74, 0.6)",  // warm brown
+  "rgba(107, 142, 73, 0.5)",  // moss green
+  "rgba(160, 132, 82, 0.55)", // golden oak
+  "rgba(122, 150, 89, 0.5)",  // sage
+  "rgba(148, 116, 68, 0.6)",  // bark brown
+];
+
+// --- Shrub config ---
+// shrub.png is a 4×4 sprite sheet. Each bush is 25% of the sheet.
+
+interface ShrubConfig {
+  /** Column (0-3) in sprite sheet */
+  col: number;
+  /** Row (0-3) in sprite sheet */
+  row: number;
+  /** Horizontal position as vw */
+  x: number;
+  /** Final resting Y from bottom as vh */
+  targetBottom: number;
+  /** Flip horizontally */
+  flip: boolean;
+  /** Stagger delay */
+  delay: number;
+  /** Display size in px */
   size: number;
 }
 
-const LEAVES: LeafConfig[] = [
-  { emoji: "\u{1F342}", startX: -5, endX: 15, startY: 10, endY: 55, rotation: 120, delay: 0, size: 28 },
-  { emoji: "\u{1F341}", startX: 105, endX: 80, startY: 5, endY: 40, rotation: -90, delay: 0.05, size: 24 },
-  { emoji: "\u{1F33F}", startX: -3, endX: 25, startY: 30, endY: 65, rotation: 60, delay: 0.1, size: 22 },
-  { emoji: "\u{1F342}", startX: 103, endX: 70, startY: 20, endY: 60, rotation: -150, delay: 0.12, size: 26 },
-  { emoji: "\u{1F341}", startX: -8, endX: 35, startY: 50, endY: 75, rotation: 90, delay: 0.18, size: 30 },
-  { emoji: "\u{1F33F}", startX: 108, endX: 60, startY: 45, endY: 70, rotation: -45, delay: 0.2, size: 20 },
-  { emoji: "\u{1F342}", startX: -4, endX: 45, startY: 15, endY: 50, rotation: 180, delay: 0.08, size: 24 },
-  { emoji: "\u{1F341}", startX: 104, endX: 55, startY: 55, endY: 80, rotation: -120, delay: 0.25, size: 28 },
-  { emoji: "\u{1F33F}", startX: -10, endX: 20, startY: 65, endY: 85, rotation: 30, delay: 0.3, size: 22 },
-  { emoji: "\u{1F342}", startX: 110, endX: 85, startY: 25, endY: 45, rotation: -60, delay: 0.15, size: 26 },
+const SHRUBS: ShrubConfig[] = [
+  { col: 0, row: 0, x: 5, targetBottom: 8, flip: false, delay: 0, size: 100 },
+  { col: 1, row: 1, x: 25, targetBottom: 6, flip: true, delay: 0.1, size: 90 },
+  { col: 2, row: 0, x: 50, targetBottom: 10, flip: false, delay: 0.05, size: 110 },
+  { col: 3, row: 2, x: 72, targetBottom: 7, flip: true, delay: 0.15, size: 95 },
+  { col: 0, row: 3, x: 90, targetBottom: 9, flip: false, delay: 0.08, size: 100 },
 ];
 
 // --- Rustle text ---
@@ -71,43 +156,128 @@ const RUSTLES: RustleConfig[] = [
 
 const BORDER_LEAVES = "\u{1F342} \u{1F33F} \u{1F341} \u223F \u{1F342} \u{1F33F} \u{1F341} \u223F \u{1F342} \u{1F33F} \u{1F341} \u223F \u{1F342} \u{1F33F}";
 
-// Total duration of the leaf animation before clearing appears
 const LEAF_ANIM_DURATION = 1.2; // seconds
-
-// --- Helpers ---
-
-function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 // --- Sub-components ---
 
-function LeafElement({ leaf }: { leaf: LeafConfig }) {
+function PawprintTrail({
+  phase,
+  onTap,
+}: {
+  phase: Phase;
+  onTap: () => void;
+}) {
+  const isTappable = phase === "pawprints";
+  const isFading = phase === "fadeout" || phase === "leaves";
+
+  // Generate positions + glow color once per trail appearance
+  const { prints: pawprints, glowColor } = useMemo(() => generatePawprints(), []);
+
+  const fadeInDuration = 0.15;
+  const fadeOutDuration = 0.25;
+  const lingerDuration = PAWPRINT_LIFESPAN - fadeInDuration - fadeOutDuration;
+  const totalDuration = fadeInDuration + lingerDuration + fadeOutDuration;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 41,
+        pointerEvents: "none",
+        overflow: "hidden",
+      }}
+    >
+      {pawprints.map((paw, i) => (
+          <motion.button
+            key={i}
+            initial={{
+              opacity: 0,
+              scale: 0.3,
+              x: 0,
+              y: 0,
+            }}
+            animate={
+              isFading
+                ? { opacity: 0, scale: 0.5, transition: { duration: 0.3 } }
+                : {
+                    opacity: [0, 1, 1, 0],
+                    scale: [0.3, 1.1, 1, 0.8],
+                    x: [0, `${paw.driftX * 0.5}vw`, `${paw.driftX}vw`],
+                    y: [0, `${-paw.driftUp * 0.5}vh`, `${-paw.driftUp}vh`],
+                  }
+            }
+            transition={
+              isFading
+                ? undefined
+                : {
+                    duration: totalDuration,
+                    delay: paw.delay,
+                    times: [
+                      0,
+                      fadeInDuration / totalDuration,
+                      (fadeInDuration + lingerDuration) / totalDuration,
+                      1,
+                    ],
+                    ease: "easeOut",
+                  }
+            }
+            onClick={isTappable ? onTap : undefined}
+            style={{
+              position: "absolute",
+              left: `${paw.startX}vw`,
+              bottom: `${paw.startBottom}vh`,
+              rotate: paw.rotation,
+              pointerEvents: isTappable ? "auto" : "none",
+              filter: `drop-shadow(0 0 6px ${glowColor})`,
+            }}
+            className="flex h-12 w-12 items-center justify-center"
+            aria-label="Discover what's hiding"
+          >
+            <span
+              className="text-2xl select-none"
+              style={{
+                textShadow: `0 0 8px ${glowColor}, 0 0 16px ${glowColor}`,
+              }}
+            >
+              🐾
+            </span>
+          </motion.button>
+        ))}
+    </div>
+  );
+}
+
+function ShrubLeaf({ shrub }: { shrub: ShrubConfig }) {
+  // Each bush is 25% of the sprite sheet
+  const bgX = shrub.col * (100 / 3); // percentage for background-position
+  const bgY = shrub.row * (100 / 3);
+
   return (
     <motion.div
-      initial={{
-        x: `${leaf.startX}%`,
-        y: `${leaf.startY}%`,
-        rotate: 0,
-        opacity: 0,
-      }}
-      animate={{
-        x: `${leaf.endX}%`,
-        y: `${leaf.endY}%`,
-        rotate: leaf.rotation,
-        opacity: [0, 1, 1, 0],
-      }}
+      initial={{ y: "100vh", opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
       transition={{
-        duration: LEAF_ANIM_DURATION,
-        delay: leaf.delay,
-        ease: "easeInOut",
-        opacity: { times: [0, 0.1, 0.7, 1] },
+        type: "spring",
+        stiffness: 120,
+        damping: 20,
+        delay: shrub.delay,
       }}
-      style={{ position: "absolute", willChange: "transform" }}
-      className="pointer-events-none select-none"
-    >
-      <span style={{ fontSize: leaf.size }}>{leaf.emoji}</span>
-    </motion.div>
+      style={{
+        position: "absolute",
+        left: `${shrub.x}vw`,
+        bottom: `${shrub.targetBottom}vh`,
+        width: shrub.size,
+        height: shrub.size,
+        backgroundImage: "url(/sprites/shrub.png)",
+        backgroundSize: "400% 400%",
+        backgroundPosition: `${bgX}% ${bgY}%`,
+        imageRendering: "pixelated" as const,
+        transform: shrub.flip ? "scaleX(-1)" : undefined,
+        willChange: "transform",
+      }}
+      className="pointer-events-none"
+    />
   );
 }
 
@@ -133,166 +303,6 @@ function RustleText({ rustle }: { rustle: RustleConfig }) {
   );
 }
 
-function PawButton({ onTap }: { onTap: () => void }) {
-  // Random horizontal position within the content area
-  const leftPercent = useMemo(() => 15 + Math.random() * 70, []);
-
-  return (
-    <div
-      className="relative"
-      style={{
-        height: 80,
-        marginBottom: `calc(${NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
-      }}
-    >
-      <motion.button
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 400, damping: 20 }}
-        whileTap={{ scale: 0.9 }}
-        onClick={onTap}
-        className="absolute flex h-16 w-16 items-center justify-center rounded-full bg-accent/60 shadow-md active:bg-accent/80"
-        style={{
-          left: `${leftPercent}%`,
-          transform: "translateX(-50%)",
-          top: 8,
-        }}
-        aria-label="Reveal woodland creature"
-      >
-        <span className="text-3xl" role="img" aria-hidden>
-          🐾
-        </span>
-      </motion.button>
-    </div>
-  );
-}
-
-// --- Main components ---
-
-/** Outer gate — decides if encounter happens, then renders inner component */
-export function WoodlandReveal() {
-  const { userId } = useAuth();
-  const { getLog, initialized } = useLogCache();
-
-  const isAdmin = userId === ADMIN_UUID;
-  const hasLoggedToday = initialized && !!getLog(todayStr());
-
-  // DEBUG: always render to test visibility
-  console.log("[WoodlandReveal]", { userId, isAdmin, initialized, hasLoggedToday, today: todayStr() });
-
-  const encounter = useMemo(() => {
-    const creature = CREATURES[Math.floor(Math.random() * CREATURES.length)];
-    // Keep creatures within the lit clearing area of woodland-bg.jpg (~30-65%)
-    const xPercent = 30 + Math.random() * 35;
-    return { creature, xPercent };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // TODO: restore gates after debugging
-  // if (!encounter || !hasLoggedToday) return null;
-
-  return <WoodlandScene creature={encounter.creature} xPercent={encounter.xPercent} />;
-}
-
-/**
- * Tap-to-reveal woodland transition.
- *
- * A paw print button appears below the content when the user has logged
- * for today. Tapping it triggers a timed leaf animation (leaves drift in
- * from edges, rustle text appears), then the woodland clearing slides
- * into view with a random creature.
- *
- * After reveal, the paw disappears and the clearing persists with a
- * decorative leaf border divider.
- */
-function WoodlandScene({
-  creature,
-  xPercent,
-}: {
-  creature: (typeof CREATURES)[number];
-  xPercent: number;
-}) {
-  const [phase, setPhase] = useState<"idle" | "animating" | "revealed">("idle");
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setPrefersReducedMotion(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-
-  function handleTap() {
-    if (prefersReducedMotion) {
-      setPhase("revealed");
-      return;
-    }
-    setPhase("animating");
-    // After leaves finish, show the clearing
-    setTimeout(() => setPhase("revealed"), (LEAF_ANIM_DURATION + 0.3) * 1000);
-  }
-
-  return (
-    <div aria-hidden>
-      {/* Paw button — visible only in idle state */}
-      <AnimatePresence>
-        {phase === "idle" && <PawButton onTap={handleTap} />}
-      </AnimatePresence>
-
-      {/* Leaf animation overlay — during animating phase */}
-      <AnimatePresence>
-        {phase === "animating" && (
-          <motion.div
-            key="leaf-overlay"
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 40,
-              overflow: "hidden",
-              pointerEvents: "none",
-            }}
-          >
-            {/* Dark green background that fades in */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.5 }}
-              transition={{ duration: LEAF_ANIM_DURATION, ease: "easeIn" }}
-              style={{
-                backgroundColor: "hsl(120, 25%, 12%)",
-                position: "absolute",
-                inset: 0,
-              }}
-            />
-            {LEAVES.map((leaf, i) => (
-              <LeafElement key={i} leaf={leaf} />
-            ))}
-            {RUSTLES.map((rustle, i) => (
-              <RustleText key={i} rustle={rustle} />
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Revealed: leaf border + woodland clearing slide in */}
-      {phase === "revealed" && (
-        <motion.div
-          initial={prefersReducedMotion ? false : { y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 200, damping: 25 }}
-        >
-          <LeafBorder />
-          <WoodlandClearing creature={creature} xPercent={xPercent} />
-        </motion.div>
-      )}
-    </div>
-  );
-}
-
 function LeafBorder() {
   return (
     <div
@@ -311,38 +321,8 @@ function WoodlandClearing({
   creature: (typeof CREATURES)[number];
   xPercent: number;
 }) {
-  useEffect(() => {
-    const html = document.documentElement;
-    html.style.overscrollBehaviorY = "none";
-
-    // Clamp scroll so the clearing's bottom edge is the hard stop.
-    // Uses requestAnimationFrame for smooth clamping without jank.
-    let raf: number;
-    const clampScroll = () => {
-      const el = document.getElementById("woodland-clearing");
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      // If bottom of clearing is above viewport bottom, we've scrolled too far
-      if (rect.bottom < window.innerHeight) {
-        const overshoot = window.innerHeight - rect.bottom;
-        window.scrollBy(0, -overshoot);
-      }
-    };
-    const onScroll = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(clampScroll);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-
-    return () => {
-      html.style.overscrollBehaviorY = "";
-      window.removeEventListener("scroll", onScroll);
-      cancelAnimationFrame(raf);
-    };
-  }, []);
-
   return (
-    <div id="woodland-clearing" className="pointer-events-none select-none relative overflow-hidden">
+    <div className="pointer-events-none select-none relative">
       <img
         src="/woodland-bg.jpg"
         alt=""
@@ -363,7 +343,6 @@ function WoodlandClearing({
           imageRendering: "pixelated",
         }}
       />
-      {/* Spacer matching bottom nav height */}
       <div
         className="sm:hidden"
         style={{
@@ -371,6 +350,173 @@ function WoodlandClearing({
           backgroundColor: "#4a5a2c",
         }}
       />
+    </div>
+  );
+}
+
+// --- Main components ---
+
+/** Outer gate — admin-only feature flag for now */
+export function WoodlandReveal() {
+  const { userId } = useAuth();
+  const isAdmin = userId === ADMIN_UUID;
+
+  const encounter = useMemo(() => {
+    if (!isAdmin) return null;
+    const creature = CREATURES[Math.floor(Math.random() * CREATURES.length)];
+    const xPercent = 25 + Math.random() * 50;
+    return { creature, xPercent };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin]);
+
+  if (!encounter) return null;
+
+  return <WoodlandScene creature={encounter.creature} xPercent={encounter.xPercent} />;
+}
+
+/**
+ * Pawprint trail → tap to reveal woodland clearing.
+ *
+ * Listens for "woodland:save" custom event (fired by save handler).
+ * On save: pawprints walk up the screen. Tapping one triggers the
+ * leaf/shrub animation and reveals the clearing. Ignoring them
+ * causes a fadeout back to idle.
+ */
+function WoodlandScene({
+  creature,
+  xPercent,
+}: {
+  creature: (typeof CREATURES)[number];
+  xPercent: number;
+}) {
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const fadeoutTimer = useRef<ReturnType<typeof setTimeout>>();
+  const leafTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReducedMotion(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  // Clean up timers
+  const clearTimers = useCallback(() => {
+    if (fadeoutTimer.current) clearTimeout(fadeoutTimer.current);
+    if (leafTimer.current) clearTimeout(leafTimer.current);
+  }, []);
+
+  useEffect(() => () => clearTimers(), [clearTimers]);
+
+  // Listen for save events
+  useEffect(() => {
+    function onSave() {
+      setPhase((current) => {
+        // Only trigger from idle — don't interrupt an in-progress sequence
+        if (current !== "idle") return current;
+        return prefersReducedMotion ? "revealed" : "pawprints";
+      });
+    }
+
+    window.addEventListener("woodland:save", onSave);
+    return () => window.removeEventListener("woodland:save", onSave);
+  }, [prefersReducedMotion]);
+
+  // Pawprint timeout → fadeout if not tapped
+  useEffect(() => {
+    if (phase !== "pawprints") return;
+    clearTimers();
+    fadeoutTimer.current = setTimeout(() => setPhase("fadeout"), PAWPRINT_TIMEOUT);
+    return clearTimers;
+  }, [phase, clearTimers]);
+
+  // Fadeout → idle
+  useEffect(() => {
+    if (phase !== "fadeout") return;
+    const t = setTimeout(() => setPhase("idle"), 600);
+    return () => clearTimeout(t);
+  }, [phase]);
+
+  // Leaves → revealed
+  useEffect(() => {
+    if (phase !== "leaves") return;
+    clearTimers();
+    leafTimer.current = setTimeout(
+      () => setPhase("revealed"),
+      (LEAF_ANIM_DURATION + 0.3) * 1000,
+    );
+    return clearTimers;
+  }, [phase, clearTimers]);
+
+  const handlePawTap = useCallback(() => {
+    clearTimers();
+    setPhase("leaves");
+  }, [clearTimers]);
+
+  // Nothing visible in idle
+  if (phase === "idle") return null;
+
+  return (
+    <div aria-hidden>
+      {/* Pawprints — visible during pawprints, fading during leaves/fadeout */}
+      <AnimatePresence>
+        {(phase === "pawprints" || phase === "leaves" || phase === "fadeout") && (
+          <PawprintTrail phase={phase} onTap={handlePawTap} />
+        )}
+      </AnimatePresence>
+
+      {/* Leaf/shrub overlay — during leaves phase */}
+      <AnimatePresence>
+        {phase === "leaves" && (
+          <motion.div
+            key="leaf-overlay"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 40,
+              overflow: "hidden",
+              pointerEvents: "none",
+            }}
+          >
+            {/* Dark green overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              transition={{ duration: LEAF_ANIM_DURATION, ease: "easeIn" }}
+              style={{
+                backgroundColor: "hsl(120, 25%, 12%)",
+                position: "absolute",
+                inset: 0,
+              }}
+            />
+            {/* Shrubs rising from bottom */}
+            {SHRUBS.map((shrub, i) => (
+              <ShrubLeaf key={i} shrub={shrub} />
+            ))}
+            {/* Rustle text */}
+            {RUSTLES.map((rustle, i) => (
+              <RustleText key={i} rustle={rustle} />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Woodland clearing — persists after reveal */}
+      {phase === "revealed" && (
+        <motion.div
+          initial={prefersReducedMotion ? false : { y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 200, damping: 25 }}
+        >
+          <LeafBorder />
+          <WoodlandClearing creature={creature} xPercent={xPercent} />
+        </motion.div>
+      )}
     </div>
   );
 }
