@@ -49,6 +49,7 @@ Required env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE
 - **macros** — `extractMacrosFromImage` (Claude Haiku vision; extracts fat/carbs/protein from food photo)
 - **collectibles** — `getUserCollectibles`, `getAllBadges`
 - **animations** — `getAllAnimations`, `getAnimation`, `getAnimationsForCreature`, `createAnimation`, `updateAnimation`, `deleteAnimation`
+- **reveal** — `rollReveal`, `logEncounter`, `getRevealOdds`, `setRevealOdds`, `getUserEncounters`
 
 ## Data Model
 
@@ -57,6 +58,8 @@ Required env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE
 - `badges` — registry of all collectibles (`name`, `description`, `image_path`, `kind`, `tags`, `rarity`). Badge definitions live in DB, images in Supabase Storage `badges` bucket.
 - `user_collectibles` — join table: `user_id` + `collectible_id` (FK → `badges.id`) + `awarded_at`
 - `sprite_animations` — sprite sheet metadata (`creature_id`, `animation_type`, `sprite_path`, grid layout, `frame_sequence`, `fps`, `loop`, `frame_offsets`, `frame_mirrors`)
+- `reveal_odds` — probability weights per sprite animation for creature reveal (key: `animation_id`, value: `weight` 0-100). Sum must be ≤ 100; remainder = "nothing happens."
+- `reveal_log` — audit of creature encounters per user (`user_id`, `animation_id`, `creature_id`, `first_encounter`)
 
 ## Auth / Routing
 

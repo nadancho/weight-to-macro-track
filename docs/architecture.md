@@ -42,3 +42,4 @@ flowchart LR
 - **macros:** `extractMacrosFromImage(base64, mediaType)` — sends photo to Claude Haiku, returns `{ fat_g, carbs_g, protein_g }`
 - **collectibles:** `getUserCollectibles()`, `getAllBadges()`
 - **animations:** `getAllAnimations()`, `getAnimation(id)`, `getAnimationsForCreature(creatureId)`, `createAnimation(dto)`, `updateAnimation(id, dto)`, `deleteAnimation(id)`
+- **reveal:** `rollReveal(userId)`, `logEncounter(userId, animationId, creatureId, firstEncounter)`, `getRevealOdds()`, `setRevealOdds(entries)`, `getUserEncounters(userId)`

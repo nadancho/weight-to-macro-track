@@ -46,6 +46,9 @@ Simple animations (idle, breathe) use 4-6 unique frames duplicated to fill 12. C
 | `profiles` | User profile, includes `theme text` column | `003_profile_theme.sql` |
 | `user_collectibles` | Owned items (creature unlocks, avatar parts) | `003_profile_theme.sql` |
 | `badges` | Badge/creature registry (id, name, description, image_path, kind, tags, rarity) | `004_badges_registry.sql` |
+| `sprite_animations` | Sprite sheet metadata (creature_id, grid, frames, fps, offsets, mirrors) | `006_sprite_animations.sql` |
+| `reveal_odds` | Probability weights per animation for creature reveal (sum ≤ 100%) | `007_reveal_odds.sql` |
+| `reveal_log` | Audit of creature encounters per user (first_encounter flag) | `007_reveal_odds.sql` |
 
 ### Planned (Not Yet Applied)
 
@@ -58,7 +61,7 @@ Simple animations (idle, breathe) use 4-6 unique frames duplicated to fill 12. C
 | Bucket | Purpose | Access |
 |--------|---------|--------|
 | `badges` | Badge sticker images | Public (CDN) |
-| `sprites` (planned) | Animated creature and player sprites | Public (CDN) |
+| `sprites` | Animated creature sprite sheets | Public (CDN) |
 
 ## Host App Integration
 
