@@ -2,10 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { SpriteAnimator } from "@/components/sprite-animator";
 
 // --- Phase machine ---
 
-type Phase = "idle" | "pawprints" | "leaves" | "fadeout";
+type Phase = "idle" | "pawprints" | "leaves" | "reveal" | "fadeout";
+
+const REVEAL_DURATION = 6000; // ms — how long the creature overlay shows
 
 // --- Pawprint config ---
 
@@ -107,7 +110,245 @@ const RUSTLES: RustleConfig[] = [
   { text: "*rustle*", x: 40, y: 72, delay: 0.6 },
 ];
 
-const LEAF_ANIM_DURATION = 1.2; // seconds — rustle overlay duration
+const LEAF_ANIM_DURATION = 2.2; // seconds — rustle + leaf burst overlay duration
+
+// --- Leaf burst config ---
+
+const LEAVES_PER_BURST = 5;
+const LEAF_EMOJIS = ["🍃", "🍂", "🌿", "🍁", "🌾", "🪶", "🌰"];
+const LEAF_GRAVITY = 800; // px/s²
+const LEAF_VY_MIN = -700; // px/s (upward)
+const LEAF_VY_MAX = -400;
+const LEAF_VX_RANGE = 150; // px/s (±)
+const LEAF_SPIN_RANGE = 360; // deg/s (±)
+
+interface LeafParticle {
+  emoji: string;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  rotation: number;
+  spin: number;
+  size: number;
+  opacity: number;
+  /** Seconds after mount before this particle activates */
+  delay: number;
+  active: boolean;
+}
+
+/** Generate 3 bursts of 5, each at a rustle text position + delay */
+function generateLeaves(): LeafParticle[] {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const particles: LeafParticle[] = [];
+
+  for (const rustle of RUSTLES) {
+    const cx = (rustle.x / 100) * w;
+    const cy = (rustle.y / 100) * h;
+    for (let j = 0; j < LEAVES_PER_BURST; j++) {
+      particles.push({
+        emoji: LEAF_EMOJIS[Math.floor(Math.random() * LEAF_EMOJIS.length)],
+        x: cx + (Math.random() - 0.5) * 40,
+        y: cy + (Math.random() - 0.5) * 20,
+        vx: (Math.random() - 0.5) * 2 * LEAF_VX_RANGE,
+        vy: LEAF_VY_MIN + Math.random() * (LEAF_VY_MAX - LEAF_VY_MIN),
+        rotation: Math.random() * 360,
+        spin: (Math.random() - 0.5) * 2 * LEAF_SPIN_RANGE,
+        size: 1.2 + Math.random() * 0.8,
+        opacity: 0,
+        delay: rustle.delay,
+        active: false,
+      });
+    }
+  }
+  return particles;
+}
+
+function LeafBurst() {
+  const rafRef = useRef<number>(0);
+  const spansRef = useRef<(HTMLSpanElement | null)[]>([]);
+  const particlesRef = useRef<LeafParticle[]>(generateLeaves());
+
+  useEffect(() => {
+    const particles = particlesRef.current;
+    let prev = 0;
+    let start = 0;
+
+    function tick(timestamp: number) {
+      if (!prev) { prev = timestamp; start = timestamp; }
+      const dt = Math.min((timestamp - prev) / 1000, 0.05);
+      const elapsed = (timestamp - start) / 1000;
+      prev = timestamp;
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        // Activate when delay has passed
+        if (!p.active) {
+          if (elapsed >= p.delay) p.active = true;
+          else continue;
+        }
+        const localT = elapsed - p.delay;
+        p.vy += LEAF_GRAVITY * dt;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.rotation += p.spin * dt;
+        // Fade in quickly, then fade out after 1s of flight
+        const fadeOutStart = 1.0;
+        const fadeOutLen = 0.4;
+        if (localT < 0.1) {
+          p.opacity = localT / 0.1;
+        } else if (localT > fadeOutStart) {
+          p.opacity = Math.max(0, 1 - (localT - fadeOutStart) / fadeOutLen);
+        } else {
+          p.opacity = 1;
+        }
+
+        const span = spansRef.current[i];
+        if (span) {
+          span.style.transform = `translate3d(${p.x}px, ${p.y}px, 0) rotate(${p.rotation}deg)`;
+          span.style.opacity = String(p.opacity);
+        }
+      }
+
+      if (elapsed < LEAF_ANIM_DURATION) {
+        rafRef.current = requestAnimationFrame(tick);
+      }
+    }
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
+
+  return (
+    <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+      {particlesRef.current.map((p, i) => (
+        <span
+          key={i}
+          ref={(el) => { spansRef.current[i] = el; }}
+          className="pointer-events-none select-none"
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            fontSize: `${p.size}rem`,
+            opacity: 0,
+            willChange: "transform, opacity",
+          }}
+        >
+          {p.emoji}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// --- Reveal animation type (matches SpriteAnimationRow from service) ---
+
+interface RevealAnimation {
+  id: string;
+  name: string;
+  creature_id: string | null;
+  sprite_path: string;
+  grid_cols: number;
+  grid_rows: number;
+  frame_sequence: number[];
+  frame_size: number;
+  fps: number;
+  loop: boolean;
+  display_width: number | null;
+  display_height: number | null;
+  frame_offsets: Array<{ x: number; y: number }>;
+  frame_mirrors: boolean[];
+}
+
+// --- Creature reveal overlay ---
+
+function CreatureReveal({
+  animation,
+  firstEncounter,
+  onComplete,
+}: {
+  animation: RevealAnimation;
+  firstEncounter: boolean;
+  onComplete: () => void;
+}) {
+  useEffect(() => {
+    const t = setTimeout(onComplete, REVEAL_DURATION);
+    return () => clearTimeout(t);
+  }, [onComplete]);
+
+  return (
+    <motion.div
+      key="creature-reveal"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.4 }}
+      onClick={onComplete}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 42,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "1rem",
+        backgroundColor: "rgba(0, 0, 0, 0.7)",
+        cursor: "pointer",
+      }}
+    >
+      <motion.div
+        initial={{ scale: 0.3, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.15 }}
+      >
+        <SpriteAnimator
+          src={animation.sprite_path}
+          grid={[animation.grid_cols, animation.grid_rows]}
+          frames={animation.frame_sequence}
+          frameSize={animation.frame_size}
+          fps={animation.fps}
+          loop={animation.loop}
+          width={animation.display_width ?? 160}
+          height={animation.display_height ?? 160}
+          frameOffsets={animation.frame_offsets}
+          frameMirrors={animation.frame_mirrors}
+        />
+      </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="flex items-center gap-2"
+      >
+        <p className="text-lg font-semibold text-white/90">
+          {animation.name}
+        </p>
+        {firstEncounter && (
+          <motion.span
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 400, damping: 12, delay: 0.6 }}
+            className="rounded-full bg-green-500 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-white"
+          >
+            New
+          </motion.span>
+        )}
+      </motion.div>
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.5 }}
+        transition={{ delay: 0.8 }}
+        className="text-xs text-white/50"
+        style={{ position: "absolute", bottom: "2rem" }}
+      >
+        Tap to dismiss
+      </motion.p>
+    </motion.div>
+  );
+}
 
 // --- Sub-components ---
 
@@ -208,11 +449,11 @@ function RustleText({ rustle }: { rustle: RustleConfig }) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
-      animate={{ opacity: [0, 0.7, 0.7, 0] }}
+      animate={{ opacity: [0, 1, 1, 0] }}
       transition={{
-        duration: 0.8,
+        duration: 1.2,
         delay: rustle.delay,
-        times: [0, 0.2, 0.7, 1],
+        times: [0, 0.15, 0.75, 1],
       }}
       style={{
         position: "absolute",
@@ -221,7 +462,7 @@ function RustleText({ rustle }: { rustle: RustleConfig }) {
       }}
       className="pointer-events-none select-none"
     >
-      <span className="text-base italic text-muted-foreground/60">{rustle.text}</span>
+      <span className="text-lg italic text-muted-foreground">{rustle.text}</span>
     </motion.div>
   );
 }
@@ -243,9 +484,12 @@ export function WoodlandReveal() {
  */
 function WoodlandScene() {
   const [phase, setPhase] = useState<Phase>("idle");
+  const [revealAnim, setRevealAnim] = useState<RevealAnimation | null>(null);
+  const [revealIsNew, setRevealIsNew] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const fadeoutTimer = useRef<ReturnType<typeof setTimeout>>();
   const leafTimer = useRef<ReturnType<typeof setTimeout>>();
+  const revealPromiseRef = useRef<Promise<{ animation: RevealAnimation | null; firstEncounter: boolean }> | null>(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -277,10 +521,16 @@ function WoodlandScene() {
     return () => window.removeEventListener("woodland:save", onSave);
   }, [prefersReducedMotion]);
 
-  // Pawprint timeout → fadeout if not tapped
+  // Pawprints start → prefetch reveal roll + set fadeout timer
   useEffect(() => {
     if (phase !== "pawprints") return;
     clearTimers();
+    revealPromiseRef.current = fetch("/api/reveal/roll", {
+      method: "POST",
+      credentials: "include",
+    })
+      .then((res) => (res.ok ? res.json() : { animation: null, firstEncounter: false }))
+      .catch(() => ({ animation: null, firstEncounter: false }));
     fadeoutTimer.current = setTimeout(() => setPhase("fadeout"), PAWPRINT_TIMEOUT);
     return clearTimers;
   }, [phase, clearTimers]);
@@ -292,16 +542,46 @@ function WoodlandScene() {
     return () => clearTimeout(t);
   }, [phase]);
 
-  // Leaves → idle (rustle plays, then resets)
+  // Leaves → consume prefetched reveal → reveal or idle
   useEffect(() => {
     if (phase !== "leaves") return;
     clearTimers();
-    leafTimer.current = setTimeout(
-      () => setPhase("idle"),
-      (LEAF_ANIM_DURATION + 0.3) * 1000,
-    );
+    leafTimer.current = setTimeout(async () => {
+      try {
+        const result = await (revealPromiseRef.current ?? Promise.resolve({ animation: null, firstEncounter: false }));
+        if (result.animation) {
+          setRevealAnim(result.animation);
+          setRevealIsNew(result.firstEncounter ?? false);
+          setPhase("reveal");
+          // Fire audit log — user actually saw the creature
+          fetch("/api/reveal/log", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              animation_id: result.animation.id,
+              creature_id: result.animation.creature_id,
+              first_encounter: result.firstEncounter ?? false,
+            }),
+          }).catch(() => {}); // fire-and-forget
+          return;
+        }
+      } catch {
+        // Roll failed — fall through to idle
+      }
+      revealPromiseRef.current = null;
+      setPhase("idle");
+    }, (LEAF_ANIM_DURATION + 0.05) * 1000);
     return clearTimers;
   }, [phase, clearTimers]);
+
+  // Reveal → idle (auto-dismiss handled inside CreatureReveal)
+  const handleRevealComplete = useCallback(() => {
+    setRevealAnim(null);
+    setRevealIsNew(false);
+    revealPromiseRef.current = null;
+    setPhase("idle");
+  }, []);
 
   const handlePawTap = useCallback(() => {
     clearTimers();
@@ -351,7 +631,16 @@ function WoodlandScene() {
             {RUSTLES.map((rustle, i) => (
               <RustleText key={i} rustle={rustle} />
             ))}
+            {/* Leaf burst — emoji projectiles with gravity */}
+            <LeafBurst />
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Creature reveal — full-screen overlay after leaves */}
+      <AnimatePresence>
+        {phase === "reveal" && revealAnim && (
+          <CreatureReveal animation={revealAnim} firstEncounter={revealIsNew} onComplete={handleRevealComplete} />
         )}
       </AnimatePresence>
 

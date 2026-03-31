@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/components/auth-provider";
 import { ADMIN_UUID } from "@/app/lib/constants";
-import { Film, Shield } from "lucide-react";
+import { Dices, Film, Shield } from "lucide-react";
 import Link from "next/link";
 
 const adminLinks = [
@@ -11,6 +11,12 @@ const adminLinks = [
     icon: Film,
     label: "Sprite Animations",
     description: "Manage creature animation sheets, frame sequences, and offsets",
+  },
+  {
+    href: "/admin/reveal",
+    icon: Dices,
+    label: "Creature Reveal Odds",
+    description: "Configure probability table for save celebration creature reveals",
   },
 ] as const;
 

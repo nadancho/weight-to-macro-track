@@ -99,6 +99,52 @@ export interface Database {
         };
       };
     };
+      reveal_odds: {
+        Row: {
+          id: string;
+          animation_id: string;
+          weight: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          animation_id: string;
+          weight: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          animation_id?: string;
+          weight?: number;
+          created_at?: string;
+        };
+      };
+      reveal_log: {
+        Row: {
+          id: string;
+          user_id: string;
+          animation_id: string;
+          creature_id: string | null;
+          first_encounter: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          animation_id: string;
+          creature_id?: string | null;
+          first_encounter?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          animation_id?: string;
+          creature_id?: string | null;
+          first_encounter?: boolean;
+          created_at?: string;
+        };
+      };
     Views: Record<string, never>;
     Functions: Record<string, never>;
     Enums: Record<string, never>;

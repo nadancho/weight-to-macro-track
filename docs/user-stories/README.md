@@ -12,3 +12,4 @@
 See also:
 
 - [History edit mode](history-edit-mode.md) — Edit weight and macros from the History table.
+- [Woodland save celebration](woodland-save-celebration.md) — Pawprint trail animation on first daily log save.
