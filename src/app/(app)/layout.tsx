@@ -4,7 +4,8 @@ import { LogCacheProvider } from "@/components/log-cache-provider";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { UserPrefsProvider } from "@/components/user-prefs-provider";
 import { WoodlandThemeProvider } from "@/components/woodland-theme-provider";
-import { BarChart2, History, PenLine, User } from "lucide-react";
+import { BarChart2, History, PenLine, Shield, User } from "lucide-react";
+import { ADMIN_UUID } from "@/app/lib/constants";
 import Link from "next/link";
 import { getSession } from "@/app/lib/modules/auth";
 import { getProfile } from "@/app/lib/modules/profiles";
@@ -69,6 +70,15 @@ export default async function AppLayout({
                 <User className="h-4 w-4" aria-hidden />
                 <span className="hidden sm:inline">Profile</span>
               </Link>
+              {session?.user?.id === ADMIN_UUID && (
+                <Link
+                  href="/admin"
+                  className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-accent"
+                >
+                  <Shield className="h-4 w-4" aria-hidden />
+                  <span className="hidden sm:inline">Admin</span>
+                </Link>
+              )}
             </div>
             <ThemeToggle />
           </div>

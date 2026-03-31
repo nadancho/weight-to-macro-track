@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 const patchBodySchema = z.object({
-  display_name: z.string().optional(),
+  display_name: z.string().min(1).optional(),
   theme: z.string().optional(),
   week_start: z.number().int().min(0).max(1).optional(),
 });

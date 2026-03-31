@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Film, Pencil, Plus, Trash2, Upload, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BoundaryEditor, type CellOffset } from "@/components/boundary-editor";
 
 interface SpriteAnimation {
   id: string;
@@ -329,6 +330,9 @@ export default function AnimationsPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
   const [saving, setSaving] = useState(false);
+  const [manualBoundaries, setManualBoundaries] = useState(false);
+  const [rawFile, setRawFile] = useState<File | null>(null);
+  const [rawImageUrl, setRawImageUrl] = useState<string | null>(null);
 
   const isAdmin = userId === ADMIN_UUID;
 
@@ -400,7 +404,7 @@ export default function AnimationsPage() {
     }
   }
 
-  async function handleProcessRaw(file: File) {
+  async function handleProcessRaw(file: File, boundaryOffsets?: CellOffset[][]) {
     if (file.size > MAX_FILE_SIZE) {
       alert(`File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max 10MB.`);
       return;
@@ -425,6 +429,9 @@ export default function AnimationsPage() {
       formData.append("fill", "0.85");
       formData.append("threshold", "25");
       formData.append("erode", "2");
+      if (boundaryOffsets) {
+        formData.append("offsets", JSON.stringify(boundaryOffsets));
+      }
 
       setUploadStatus("Removing background & normalizing...");
 
@@ -680,7 +687,14 @@ export default function AnimationsPage() {
                       className="hidden"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
-                        if (file) handleProcessRaw(file);
+                        if (!file) return;
+                        if (manualBoundaries) {
+                          // Open boundary editor instead of processing immediately
+                          setRawFile(file);
+                          setRawImageUrl(URL.createObjectURL(file));
+                        } else {
+                          handleProcessRaw(file);
+                        }
                       }}
                     />
                     <span className="inline-flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-sm hover:bg-primary/20">
@@ -703,7 +717,49 @@ export default function AnimationsPage() {
                 <p className="text-xs text-muted-foreground">
                   &ldquo;Processed&rdquo; = already ran normalize-sprite.py. &ldquo;Raw&rdquo; = JPG/PNG from AI Studio, will auto-remove background &amp; normalize.
                 </p>
+                {/* Manual boundaries checkbox */}
+                <div className="flex items-center gap-2 mt-1">
+                  <input
+                    type="checkbox"
+                    id="manual-boundaries"
+                    checked={manualBoundaries}
+                    onChange={(e) => {
+                      setManualBoundaries(e.target.checked);
+                      if (!e.target.checked) {
+                        setRawFile(null);
+                        if (rawImageUrl) URL.revokeObjectURL(rawImageUrl);
+                        setRawImageUrl(null);
+                      }
+                    }}
+                  />
+                  <label htmlFor="manual-boundaries" className="text-sm">
+                    Adjust boundaries manually before processing
+                  </label>
+                </div>
               </div>
+
+              {/* Boundary Editor — shown when manual boundaries ticked + raw image selected */}
+              {rawImageUrl && rawFile && (
+                <div className="sm:col-span-2">
+                  <BoundaryEditor
+                    imageUrl={rawImageUrl}
+                    cols={form.grid_cols}
+                    rows={form.grid_rows}
+                    onConfirm={(offsets) => {
+                      URL.revokeObjectURL(rawImageUrl);
+                      setRawImageUrl(null);
+                      const file = rawFile;
+                      setRawFile(null);
+                      handleProcessRaw(file, offsets);
+                    }}
+                    onCancel={() => {
+                      URL.revokeObjectURL(rawImageUrl);
+                      setRawImageUrl(null);
+                      setRawFile(null);
+                    }}
+                  />
+                </div>
+              )}
 
               {/* Frame Size (auto-detected, editable) */}
               <div className="flex flex-col gap-1.5">

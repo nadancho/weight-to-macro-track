@@ -29,6 +29,7 @@ export async function POST(request: Request) {
   const fill = (formData.get("fill") as string) || "0.85";
   const threshold = (formData.get("threshold") as string) || "25";
   const erode = (formData.get("erode") as string) || "2";
+  const offsets = formData.get("offsets") as string | null;
 
   // Write uploaded file to temp dir
   const tmp = await mkdtemp(join(tmpdir(), "sprite-"));
@@ -52,6 +53,7 @@ export async function POST(request: Request) {
           "--fill", fill,
           "--threshold", threshold,
           "--erode", erode,
+          ...(offsets ? ["--offsets", offsets] : []),
         ],
         { timeout: 30000 },
         (error, stdout, stderr) => {

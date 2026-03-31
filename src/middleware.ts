@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const PROTECTED_PATHS = ["/history", "/profile", "/grove"];
 const AUTH_ONLY_PATHS = ["/sign-up"];
+const ONBOARDING_EXCLUDE = ["/welcome", "/sign-up", "/api"];
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -47,6 +48,23 @@ export async function middleware(request: NextRequest) {
   }
   if (isAuthOnly && session) {
     return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  // Onboarding: redirect to /welcome if display_name is not set
+  if (session) {
+    const skipOnboarding = ONBOARDING_EXCLUDE.some(
+      (p) => path === p || path.startsWith(`${p}/`),
+    );
+    if (!skipOnboarding) {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", session.user.id)
+        .maybeSingle();
+      if (prof && !prof.display_name) {
+        return NextResponse.redirect(new URL("/welcome", request.url));
+      }
+    }
   }
 
   return response;

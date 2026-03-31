@@ -552,7 +552,7 @@ def create_grid_debug_image(img, grid_regions, cell_size):
 
 def normalize_sprite(input_path, output_path, frames_count=None, cell_size=256,
                      equal_split=False, threshold=25.0, debug=False, grid=None,
-                     fill_pct=0, erode=1):
+                     fill_pct=0, erode=1, cell_offsets=None):
     print(f"Loading: {input_path}")
     img = Image.open(input_path).convert("RGBA")
     w, h = img.size
@@ -567,7 +567,24 @@ def normalize_sprite(input_path, output_path, frames_count=None, cell_size=256,
     # Step 2: Detect frames
     if grid:
         cols, rows = grid
-        grid_regions = grid_split_frames(img, cols, rows)
+        if cell_offsets:
+            # Manual boundary mode: apply per-cell offsets to equal-grid baseline
+            cw = w // cols
+            ch = h // rows
+            grid_regions = []
+            for row in range(rows):
+                for col in range(cols):
+                    o = cell_offsets[row][col] if row < len(cell_offsets) and col < len(cell_offsets[row]) else {}
+                    dx = int(o.get("dx", 0))
+                    dy = int(o.get("dy", 0))
+                    x1 = max(0, col * cw + dx)
+                    y1 = max(0, row * ch + dy)
+                    x2 = min(w, x1 + cw)
+                    y2 = min(h, y1 + ch)
+                    grid_regions.append((x1, y1, x2, y2))
+            print(f"  Grid mode (manual offsets): {cols}x{rows} = {cols * rows} frames")
+        else:
+            grid_regions = grid_split_frames(img, cols, rows)
         total = cols * rows
         print(f"  Grid mode: {cols}x{rows} = {total} frames")
 
@@ -633,6 +650,9 @@ if __name__ == "__main__":
                              "Uses nearest-neighbor for crisp pixel art upscaling. 0 = no upscaling.")
     parser.add_argument("--grid", default=None,
                         help="Grid layout as COLSxROWS (e.g., 4x3 for a 4-column, 3-row grid)")
+    parser.add_argument("--offsets", default=None,
+                        help="JSON string of per-cell crop offsets: [[{dx,dy},...],...]  "
+                             "Row-major 2D array. Each offset shifts that cell's crop origin.")
     parser.add_argument("--debug", action="store_true",
                         help="Output a debug image showing detected frame boundaries")
     args = parser.parse_args()
@@ -645,6 +665,11 @@ if __name__ == "__main__":
             sys.exit(1)
         grid = (int(parts[0]), int(parts[1]))
 
+    cell_offsets = None
+    if args.offsets:
+        import json as _json
+        cell_offsets = _json.loads(args.offsets)
+
     normalize_sprite(
         args.input, args.output,
         frames_count=args.frames,
@@ -655,4 +680,5 @@ if __name__ == "__main__":
         grid=grid,
         fill_pct=args.fill,
         erode=args.erode,
+        cell_offsets=cell_offsets,
     )
