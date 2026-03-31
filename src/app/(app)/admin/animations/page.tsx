@@ -5,7 +5,8 @@ import { ADMIN_UUID } from "@/app/lib/constants";
 import { SpriteAnimator } from "@/components/sprite-animator";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Film, Plus, Trash2, Upload, X } from "lucide-react";
+import { Film, Pencil, Plus, Trash2, Upload, X } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 interface SpriteAnimation {
@@ -805,6 +806,12 @@ export default function AnimationsPage() {
                     </p>
                   </div>
                   <div className="flex gap-1 shrink-0">
+                    <Link href={`/admin/animations/${anim.id}/edit`}>
+                      <Button variant="ghost" size="sm">
+                        <Pencil className="size-3.5" />
+                        Frames
+                      </Button>
+                    </Link>
                     <Button variant="ghost" size="sm" onClick={() => startEdit(anim)}>
                       Edit
                     </Button>
