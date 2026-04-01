@@ -42,4 +42,7 @@ flowchart LR
 - **macros:** `extractMacrosFromImage(base64, mediaType)` — sends photo to Claude Haiku, returns `{ fat_g, carbs_g, protein_g }`
 - **collectibles:** `getUserCollectibles()`, `getAllBadges()`
 - **animations:** `getAllAnimations()`, `getAnimation(id)`, `getAnimationsForCreature(creatureId)`, `createAnimation(dto)`, `updateAnimation(id, dto)`, `deleteAnimation(id)`
-- **reveal:** `rollReveal(userId)`, `logEncounter(userId, animationId, creatureId, firstEncounter)`, `getRevealOdds()`, `setRevealOdds(entries)`, `getUserEncounters(userId)`
+- **reveal:** `rollReveal(userId, eventData?)`, `logEncounter(userId, animationId, creatureId, firstEncounter)`, `getUserEncounters(userId)` — two-stage roll (tier → creature) using encounter sets
+- **encounter-sets:** `getAllSets()`, `getSet(id)`, `createSet(dto)`, `updateSet(id, dto)`, `deleteSet(id)`, `addMember(setId, badgeId, weight)`, `removeMember(memberId)`, `evaluateCondition(condition, context)`, `getQualifyingSetIds(context)`, `getEligibleCreatures(setIds, tier)`
+- **profile-attributes:** `getAllAttributes()`, `createAttribute(dto)`, `getUserAttributeMap(userId)`, `upsertAttributeValue(userId, key, value)`
+- **events:** `emit(event, payload)` — in-process event registry. Handlers registered at import time update profile attributes.

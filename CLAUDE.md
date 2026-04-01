@@ -49,7 +49,10 @@ Required env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE
 - **macros** — `extractMacrosFromImage` (Claude Haiku vision; extracts fat/carbs/protein from food photo)
 - **collectibles** — `getUserCollectibles`, `getAllBadges`
 - **animations** — `getAllAnimations`, `getAnimation`, `getAnimationsForCreature`, `createAnimation`, `updateAnimation`, `deleteAnimation`
-- **reveal** — `rollReveal`, `logEncounter`, `getRevealOdds`, `setRevealOdds`, `getUserEncounters`
+- **reveal** — `rollReveal(userId, eventData?)`, `logEncounter`, `getUserEncounters`. Two-stage roll: tier (fixed odds) → creature (weighted within tier from qualifying encounter sets)
+- **encounter-sets** — `getAllSets`, `getSet`, `createSet`, `updateSet`, `deleteSet`, `addMember`, `removeMember`, `evaluateCondition`, `getQualifyingSetIds`, `getEligibleCreatures`
+- **profile-attributes** — `getAllAttributes`, `createAttribute`, `getUserAttributeMap`, `upsertAttributeValue`
+- **events** — `emit('log:saved', ...)`. Lightweight in-process event registry. Handlers update profile attributes on log save.
 
 ## Data Model
 
@@ -58,7 +61,10 @@ Required env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE
 - `badges` — registry of all collectibles (`name`, `description`, `image_path`, `kind`, `tags`, `rarity`). Badge definitions live in DB, images in Supabase Storage `badges` bucket.
 - `user_collectibles` — join table: `user_id` + `collectible_id` (FK → `badges.id`) + `awarded_at`
 - `sprite_animations` — sprite sheet metadata (`creature_id`, `animation_type`, `sprite_path`, grid layout, `frame_sequence`, `fps`, `loop`, `frame_offsets`, `frame_mirrors`)
-- `reveal_odds` — probability weights per sprite animation for creature reveal (key: `animation_id`, value: `weight` 0-100). Sum must be ≤ 100; remainder = "nothing happens."
+- `encounter_sets` — named creature pools with optional JSONB conditions (`{source, key, operator, value}`). `null` condition = always active (default set).
+- `encounter_set_members` — join: `set_id` + `badge_id` + `weight` (integer, relative within tier). UNIQUE(set_id, badge_id). Tier comes from `badges.rarity`.
+- `profile_attributes` — global attribute definitions (`key` UNIQUE, `label`, `data_type`: number/boolean/string)
+- `profile_attribute_values` — per-user values: `user_id` + `attribute_id` + typed columns (`value_number`, `value_boolean`, `value_string`). UNIQUE(user_id, attribute_id).
 - `reveal_log` — audit of creature encounters per user (`user_id`, `animation_id`, `creature_id`, `first_encounter`)
 
 ## Auth / Routing
