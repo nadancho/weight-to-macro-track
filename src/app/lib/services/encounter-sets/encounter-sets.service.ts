@@ -9,20 +9,18 @@ import type {
 // --- Types ---
 
 export interface EncounterSetWithMembers extends EncounterSetRow {
-  members: EncounterSetMemberWithBadge[];
+  members: EncounterSetMemberWithAnimation[];
 }
 
-export interface EncounterSetMemberWithBadge extends EncounterSetMemberRow {
-  badge: { id: string; name: string; rarity: string; image_path: string | null };
+export interface EncounterSetMemberWithAnimation extends EncounterSetMemberRow {
+  animation: { id: string; name: string; creature_id: string | null; sprite_path: string };
 }
 
 export interface EligibleCreature {
-  badge_id: string;
-  badge_name: string;
-  rarity: string;
-  image_path: string | null;
+  animation_id: string;
+  animation_name: string;
+  sprite_path: string;
   weight: number;
-  animation_id: string | null;
 }
 
 export interface ConditionContext {
@@ -48,7 +46,7 @@ export async function getAllSets(): Promise<EncounterSetWithMembers[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("encounter_sets")
-    .select("*, encounter_set_members(*, badges!inner(id, name, rarity, image_path))")
+    .select("*, encounter_set_members(*, sprite_animations!inner(id, name, creature_id, sprite_path))")
     .order("created_at", { ascending: true });
 
   if (!data) return [];
@@ -59,7 +57,7 @@ export async function getSet(id: string): Promise<EncounterSetWithMembers | null
   const supabase = await createClient();
   const { data } = await supabase
     .from("encounter_sets")
-    .select("*, encounter_set_members(*, badges!inner(id, name, rarity, image_path))")
+    .select("*, encounter_set_members(*, sprite_animations!inner(id, name, creature_id, sprite_path))")
     .eq("id", id)
     .maybeSingle();
 
@@ -105,13 +103,13 @@ export async function deleteSet(id: string): Promise<boolean> {
 
 export async function addMember(
   setId: string,
-  badgeId: string,
+  animationId: string,
   weight: number = 1,
 ): Promise<EncounterSetMemberRow | null> {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("encounter_set_members")
-    .insert({ set_id: setId, badge_id: badgeId, weight } as never)
+    .insert({ set_id: setId, animation_id: animationId, weight } as never)
     .select()
     .single();
   if (error) throw new Error(error.message);
@@ -198,44 +196,39 @@ export async function getQualifyingSetIds(
     .map((set) => set.id);
 }
 
-// --- Eligible creatures for a tier ---
+// --- Eligible creatures (flat weighted pool, no tier filtering) ---
 
 export async function getEligibleCreatures(
   qualifyingSetIds: string[],
-  tier: string,
 ): Promise<EligibleCreature[]> {
   if (qualifyingSetIds.length === 0) return [];
 
   const admin = createAdminClient();
   const { data } = await admin
     .from("encounter_set_members")
-    .select("weight, badge_id, badges!inner(id, name, rarity, image_path), set_id")
+    .select("weight, animation_id, sprite_animations!inner(id, name, creature_id, sprite_path), set_id")
     .in("set_id", qualifyingSetIds);
 
   if (!data) return [];
 
-  // Filter to target tier and dedup by badge_id (keep highest weight)
-  const bestByBadge = new Map<string, EligibleCreature>();
+  // Dedup by animation_id (keep highest weight)
+  const bestByAnimation = new Map<string, EligibleCreature>();
 
   for (const row of data as unknown as Array<{
     weight: number;
-    badge_id: string;
-    badges: { id: string; name: string; rarity: string; image_path: string | null };
+    animation_id: string;
+    sprite_animations: { id: string; name: string; creature_id: string | null; sprite_path: string };
   }>) {
-    if (row.badges.rarity !== tier) continue;
-
-    const existing = bestByBadge.get(row.badge_id);
+    const existing = bestByAnimation.get(row.animation_id);
     if (!existing || row.weight > existing.weight) {
-      bestByBadge.set(row.badge_id, {
-        badge_id: row.badge_id,
-        badge_name: row.badges.name,
-        rarity: row.badges.rarity,
-        image_path: row.badges.image_path,
+      bestByAnimation.set(row.animation_id, {
+        animation_id: row.animation_id,
+        animation_name: row.sprite_animations.name,
+        sprite_path: row.sprite_animations.sprite_path,
         weight: row.weight,
-        animation_id: null, // resolved later in rollReveal
       });
     }
   }
 
-  return Array.from(bestByBadge.values());
+  return Array.from(bestByAnimation.values());
 }

@@ -11,7 +11,7 @@ export {
   getQualifyingSetIds,
   getEligibleCreatures,
   type EncounterSetWithMembers,
-  type EncounterSetMemberWithBadge,
+  type EncounterSetMemberWithAnimation,
   type EligibleCreature,
   type ConditionContext,
   type Condition,

@@ -148,21 +148,21 @@ export interface Database {
         Row: {
           id: string;
           set_id: string;
-          badge_id: string;
+          animation_id: string;
           weight: number;
           created_at: string;
         };
         Insert: {
           id?: string;
           set_id: string;
-          badge_id: string;
+          animation_id: string;
           weight?: number;
           created_at?: string;
         };
         Update: {
           id?: string;
           set_id?: string;
-          badge_id?: string;
+          animation_id?: string;
           weight?: number;
           created_at?: string;
         };

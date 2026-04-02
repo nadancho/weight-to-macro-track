@@ -48,6 +48,7 @@ export async function POST(request: Request) {
     });
     return NextResponse.json(set, { status: 201 });
   } catch (err) {
+    console.error("[encounter-sets] POST failed:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed to create set" },
       { status: 500 },

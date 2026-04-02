@@ -29,7 +29,8 @@ export function Toast({ message, type = "ok", onDismiss, duration = 2500 }: Toas
           transition={{ duration: 0.15 }}
           role={type === "error" ? "alert" : "status"}
           className={cn(
-            "fixed top-4 right-4 z-[200]",
+            "fixed right-4 z-[200]",
+            "top-[calc(env(safe-area-inset-top,0px)+1rem)]",
             "flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium shadow-lg",
             "bg-card text-card-foreground border-border"
           )}

@@ -8,23 +8,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Layers, Plus, Save, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
 
 // --- Types ---
 
-interface Badge {
+interface Animation {
   id: string;
   name: string;
-  rarity: string;
-  image_path: string | null;
+  creature_id: string | null;
+  sprite_path: string;
 }
 
 interface Member {
   id: string;
   set_id: string;
-  badge_id: string;
+  animation_id: string;
   weight: number;
-  badge: Badge;
+  animation: Animation;
 }
 
 interface EncounterSet {
@@ -39,28 +38,12 @@ interface EncounterSet {
   members: Member[];
 }
 
-const RARITY_COLORS: Record<string, string> = {
-  common: "text-zinc-400",
-  rare: "text-blue-400",
-  epic: "text-purple-400",
-  unique: "text-amber-400",
-  legendary: "text-orange-400",
-};
-
-const TIER_ODDS: Record<string, number> = {
-  common: 35,
-  rare: 20,
-  epic: 12,
-  unique: 5,
-  legendary: 3,
-};
-
 // --- Page ---
 
 export default function EncounterSetsPage() {
   const { userId } = useAuth();
   const [sets, setSets] = useState<EncounterSet[]>([]);
-  const [badges, setBadges] = useState<Badge[]>([]);
+  const [animations, setAnimations] = useState<Animation[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedSetId, setExpandedSetId] = useState<string | null>(null);
 
@@ -77,31 +60,16 @@ export default function EncounterSetsPage() {
   const fetchSets = useCallback(async () => {
     const res = await fetch("/api/admin/encounter-sets", { credentials: "include" });
     const data = await res.json();
-    setSets(data ?? []);
+    setSets(Array.isArray(data) ? data : []);
   }, []);
 
   useEffect(() => {
     if (userId !== ADMIN_UUID) return;
     Promise.all([
       fetchSets(),
-      fetch("/api/collectibles", { credentials: "include" })
-        .then((r) => r.json())
-        .then(() =>
-          // Fetch all badges directly
-          fetch("/api/admin/encounter-sets", { credentials: "include" })
-            .then((r) => r.json())
-        ),
-      // Get all badges from the collectibles endpoint
-      fetch("/api/collectibles", { credentials: "include" }).then((r) => r.json()),
-    ]).then(([, , collectiblesData]) => {
-      // Extract unique badges from all sources
-      const badgeMap = new Map<string, Badge>();
-      if (Array.isArray(collectiblesData)) {
-        for (const c of collectiblesData) {
-          if (c.badge) badgeMap.set(c.badge.id, c.badge);
-        }
-      }
-      setBadges(Array.from(badgeMap.values()));
+      fetch("/api/admin/animations", { credentials: "include" }).then((r) => r.json()),
+    ]).then(([, animationsData]) => {
+      setAnimations(Array.isArray(animationsData) ? animationsData : []);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [userId, fetchSets]);
@@ -145,12 +113,12 @@ export default function EncounterSetsPage() {
     await fetchSets();
   };
 
-  const handleAddMember = async (setId: string, badgeId: string) => {
+  const handleAddMember = async (setId: string, animationId: string) => {
     await fetch(`/api/admin/encounter-sets/${setId}/members`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ badge_id: badgeId, weight: 1 }),
+      body: JSON.stringify({ animation_id: animationId, weight: 1 }),
     });
     await fetchSets();
   };
@@ -187,34 +155,16 @@ export default function EncounterSetsPage() {
           Encounter Sets
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Configure creature pools and conditions for the two-stage reveal system
+          Configure animation pools and conditions for the reveal system
         </p>
       </div>
-
-      {/* Tier odds reference */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Tier Roll Probabilities (fixed)
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-3 flex-wrap text-xs">
-            {Object.entries(TIER_ODDS).map(([tier, pct]) => (
-              <span key={tier} className={cn("font-medium", RARITY_COLORS[tier])}>
-                {tier}: {pct}%
-              </span>
-            ))}
-            <span className="text-muted-foreground">nothing: 25%</span>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Encounter sets list */}
       {sets.map((set) => {
         const isExpanded = expandedSetId === set.id;
-        const memberBadgeIds = new Set(set.members.map((m) => m.badge_id));
-        const availableBadges = badges.filter((b) => !memberBadgeIds.has(b.id));
+        const members = set.members ?? [];
+        const memberAnimationIds = new Set(members.map((m) => m.animation_id));
+        const availableAnimations = animations.filter((a) => !memberAnimationIds.has(a.id));
 
         return (
           <Card key={set.id}>
@@ -231,7 +181,7 @@ export default function EncounterSetsPage() {
                       ? `${set.condition.source}.${set.condition.key} ${set.condition.operator} ${set.condition.value ?? ""}`
                       : "Always active (default)"}
                     {" · "}
-                    {set.members.length} creature{set.members.length !== 1 ? "s" : ""}
+                    {members.length} animation{members.length !== 1 ? "s" : ""}
                   </p>
                 </button>
                 <button
@@ -248,28 +198,23 @@ export default function EncounterSetsPage() {
             {isExpanded && (
               <CardContent className="space-y-3">
                 {/* Members */}
-                {set.members.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No creatures in this set</p>
+                {members.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No animations in this set</p>
                 ) : (
                   <div className="space-y-1.5">
-                    {set.members.map((member) => (
+                    {members.map((member) => (
                       <div
                         key={member.id}
                         className="flex items-center justify-between rounded-lg bg-muted/20 px-3 py-2"
                       >
-                        <div className="flex items-center gap-2">
-                          <span className={cn("text-xs font-medium", RARITY_COLORS[member.badge.rarity])}>
-                            {member.badge.rarity}
-                          </span>
-                          <span className="text-sm">{member.badge.name}</span>
-                        </div>
+                        <span className="text-sm">{member.animation.name}</span>
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-muted-foreground">wt: {member.weight}</span>
                           <button
                             type="button"
                             onClick={() => handleRemoveMember(set.id, member.id)}
                             className="p-1 rounded text-muted-foreground hover:text-destructive transition-colors"
-                            aria-label={`Remove ${member.badge.name}`}
+                            aria-label={`Remove ${member.animation.name}`}
                           >
                             <X className="size-3.5" />
                           </button>
@@ -279,20 +224,20 @@ export default function EncounterSetsPage() {
                   </div>
                 )}
 
-                {/* Add creature */}
-                {availableBadges.length > 0 && (
+                {/* Add animation */}
+                {availableAnimations.length > 0 && (
                   <div className="space-y-1.5">
-                    <p className="text-xs font-medium text-muted-foreground">Add creature</p>
+                    <p className="text-xs font-medium text-muted-foreground">Add animation</p>
                     <div className="flex flex-wrap gap-1.5">
-                      {availableBadges.map((badge) => (
+                      {availableAnimations.map((anim) => (
                         <button
-                          key={badge.id}
+                          key={anim.id}
                           type="button"
-                          onClick={() => handleAddMember(set.id, badge.id)}
+                          onClick={() => handleAddMember(set.id, anim.id)}
                           className="flex items-center gap-1.5 rounded-lg border border-white/[0.08] px-2 py-1 text-xs hover:bg-white/[0.06] transition-colors"
                         >
                           <Plus className="size-3" />
-                          <span className={RARITY_COLORS[badge.rarity]}>{badge.name}</span>
+                          <span>{anim.name}</span>
                         </button>
                       ))}
                     </div>

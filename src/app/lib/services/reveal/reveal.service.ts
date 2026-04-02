@@ -7,16 +7,9 @@ import {
 } from "@/app/lib/modules/encounter-sets";
 import type { SpriteAnimationRow } from "@/app/lib/services/animations/animations.service";
 
-// --- Tier odds (fixed constants) ---
+// --- Nothing probability ---
 
-const TIER_ODDS: Record<string, number> = {
-  common: 35,
-  rare: 20,
-  epic: 12,
-  unique: 5,
-  legendary: 3,
-  // nothing: 25 (implicit remainder, total = 75)
-};
+const NOTHING_CHANCE = 0.25;
 
 // --- Types ---
 
@@ -41,7 +34,7 @@ export interface EventData {
   weight?: number | null;
 }
 
-// --- Two-stage roll ---
+// --- Single-stage weighted roll ---
 
 export async function rollReveal(
   userId: string,
@@ -57,64 +50,50 @@ export async function rollReveal(
   const qualifyingSetIds = await getQualifyingSetIds(context);
   if (qualifyingSetIds.length === 0) return null;
 
-  // 4. Tier roll
-  const roll = Math.random() * 100;
-  let cumulative = 0;
-  let winningTier: string | null = null;
+  // 4. "Nothing" roll
+  if (Math.random() < NOTHING_CHANCE) return null;
 
-  for (const [tier, weight] of Object.entries(TIER_ODDS)) {
-    cumulative += weight;
-    if (roll < cumulative) {
-      winningTier = tier;
-      break;
-    }
-  }
+  // 5. Get all eligible animations from qualifying sets
+  const creatures = await getEligibleCreatures(qualifyingSetIds);
+  if (creatures.length === 0) return null;
 
-  if (!winningTier) return null; // landed in "nothing" (25%)
-
-  // 5. Get eligible creatures for this tier
-  const creatures = await getEligibleCreatures(qualifyingSetIds, winningTier);
-  if (creatures.length === 0) return null; // no creatures in this tier
-
-  // 6. Weighted random selection within tier
+  // 6. Weighted random selection
   const totalWeight = creatures.reduce((sum, c) => sum + c.weight, 0);
-  const creatureRoll = Math.random() * totalWeight;
-  let creatureCumulative = 0;
+  const roll = Math.random() * totalWeight;
+  let cumulative = 0;
   let winner = creatures[0];
 
   for (const creature of creatures) {
-    creatureCumulative += creature.weight;
-    if (creatureRoll < creatureCumulative) {
+    cumulative += creature.weight;
+    if (roll < cumulative) {
       winner = creature;
       break;
     }
   }
 
-  // 7. Look up a sprite animation for this creature
+  // 7. Fetch full animation row for the winner
   const admin = createAdminClient();
   const { data: animData } = await admin
     .from("sprite_animations")
     .select("*")
-    .eq("creature_id", winner.badge_id)
-    .limit(1)
+    .eq("id", winner.animation_id)
     .maybeSingle();
 
-  if (!animData) return null; // creature has no animation
+  if (!animData) return null;
   const animation = animData as unknown as SpriteAnimationRow;
 
-  // 8. Check first encounter
-  let firstEncounter = false;
+  // 8. Check first encounter (by animation_id)
   const { count } = await admin
     .from("reveal_log")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
-    .eq("creature_id", winner.badge_id);
-  firstEncounter = (count ?? 0) === 0;
+    .eq("animation_id", winner.animation_id);
+  const firstEncounter = (count ?? 0) === 0;
 
   return { animation, firstEncounter };
 }
 
-// --- Log encounter (unchanged) ---
+// --- Log encounter ---
 
 export async function logEncounter(
   userId: string,
@@ -131,7 +110,7 @@ export async function logEncounter(
   } as never);
 }
 
-// --- Read user encounters (unchanged) ---
+// --- Read user encounters ---
 
 export async function getUserEncounters(userId: string): Promise<RevealLogRow[]> {
   const admin = createAdminClient();

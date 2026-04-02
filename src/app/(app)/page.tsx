@@ -36,6 +36,7 @@ export default function HomePage() {
   const { weekStartsOn } = useUserPrefs();
   const [date, setDate] = useState(todayISO);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
+  const [streak, setStreak] = useState<number | null>(null);
   const [weight, setWeight] = useState<number | null>(null);
   const [carbs_g, setCarbsG] = useState("");
   const [protein_g, setProteinG] = useState("");
@@ -95,6 +96,19 @@ export default function HomePage() {
       setFatG("");
     }
   }, [date, getLog]);
+
+  // Fetch streak
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    fetch("/api/profile-attributes", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((attrs) => {
+        if (attrs && typeof attrs.current_streak === "number") {
+          setStreak(attrs.current_streak);
+        }
+      })
+      .catch(() => {});
+  }, [isAuthenticated]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -263,6 +277,13 @@ export default function HomePage() {
       <Card className="max-w-md w-full shadow-sm">
         <CardHeader className="pb-4">
           <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Daily Log</CardTitle>
+          {streak !== null && streak > 0 && (
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Flame className="size-4 shrink-0 text-amber-500" aria-hidden />
+              <span className="tabular-nums font-medium">{streak}</span>
+              <span>day streak</span>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4 text-base">

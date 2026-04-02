@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 const addMemberSchema = z.object({
-  badge_id: z.string().min(1),
+  animation_id: z.string().min(1),
   weight: z.number().int().positive().default(1),
 });
 
@@ -29,7 +29,7 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   try {
-    const member = await addMember(setId, parsed.data.badge_id, parsed.data.weight);
+    const member = await addMember(setId, parsed.data.animation_id, parsed.data.weight);
     return NextResponse.json(member, { status: 201 });
   } catch (err) {
     return NextResponse.json(
