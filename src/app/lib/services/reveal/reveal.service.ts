@@ -7,10 +7,6 @@ import {
 } from "@/app/lib/modules/encounter-sets";
 import type { SpriteAnimationRow } from "@/app/lib/services/animations/animations.service";
 
-// --- Nothing probability ---
-
-const NOTHING_CHANCE = 0.25;
-
 // --- Types ---
 
 export interface RevealLogRow {
@@ -50,14 +46,11 @@ export async function rollReveal(
   const qualifyingSetIds = await getQualifyingSetIds(context);
   if (qualifyingSetIds.length === 0) return null;
 
-  // 4. "Nothing" roll
-  if (Math.random() < NOTHING_CHANCE) return null;
-
-  // 5. Get all eligible animations from qualifying sets
+  // 4. Get all eligible animations from qualifying sets
   const creatures = await getEligibleCreatures(qualifyingSetIds);
   if (creatures.length === 0) return null;
 
-  // 6. Weighted random selection
+  // 5. Weighted random selection
   const totalWeight = creatures.reduce((sum, c) => sum + c.weight, 0);
   const roll = Math.random() * totalWeight;
   let cumulative = 0;
@@ -71,7 +64,7 @@ export async function rollReveal(
     }
   }
 
-  // 7. Fetch full animation row for the winner
+  // 6. Fetch full animation row for the winner
   const admin = createAdminClient();
   const { data: animData } = await admin
     .from("sprite_animations")
@@ -82,7 +75,7 @@ export async function rollReveal(
   if (!animData) return null;
   const animation = animData as unknown as SpriteAnimationRow;
 
-  // 8. Check first encounter (by animation_id)
+  // 7. Check first encounter (by animation_id)
   const { count } = await admin
     .from("reveal_log")
     .select("id", { count: "exact", head: true })
