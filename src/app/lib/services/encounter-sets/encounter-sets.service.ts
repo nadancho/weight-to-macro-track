@@ -49,8 +49,8 @@ function mapSetRow(row: Record<string, unknown>): EncounterSetWithMembers {
   return {
     ...(row as unknown as EncounterSetWithMembers),
     members: rawMembers.map((m) => ({
-      ...m,
-      animation: m.sprite_animations,
+      ...(m as unknown as EncounterSetMemberWithAnimation),
+      animation: m.sprite_animations as unknown as EncounterSetMemberWithAnimation["animation"],
     })),
   };
 }
