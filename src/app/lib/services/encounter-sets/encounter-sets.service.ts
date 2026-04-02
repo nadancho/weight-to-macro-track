@@ -40,28 +40,46 @@ export interface Condition {
   value?: number | boolean | string;
 }
 
+// --- Response mapping ---
+// Supabase returns nested joins keyed by table name (encounter_set_members, sprite_animations).
+// We remap to our domain types (members, animation).
+
+function mapSetRow(row: Record<string, unknown>): EncounterSetWithMembers {
+  const rawMembers = (row.encounter_set_members ?? []) as Array<Record<string, unknown>>;
+  return {
+    ...(row as unknown as EncounterSetWithMembers),
+    members: rawMembers.map((m) => ({
+      ...m,
+      animation: m.sprite_animations,
+    })),
+  };
+}
+
+const SETS_SELECT = "*, encounter_set_members(*, sprite_animations!inner(id, name, creature_id, sprite_path))";
+
 // --- CRUD (admin) ---
 
 export async function getAllSets(): Promise<EncounterSetWithMembers[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("encounter_sets")
-    .select("*, encounter_set_members(*, sprite_animations!inner(id, name, creature_id, sprite_path))")
+    .select(SETS_SELECT)
     .order("created_at", { ascending: true });
 
   if (!data) return [];
-  return (data as unknown as EncounterSetWithMembers[]);
+  return data.map(mapSetRow);
 }
 
 export async function getSet(id: string): Promise<EncounterSetWithMembers | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("encounter_sets")
-    .select("*, encounter_set_members(*, sprite_animations!inner(id, name, creature_id, sprite_path))")
+    .select(SETS_SELECT)
     .eq("id", id)
     .maybeSingle();
 
-  return data as unknown as EncounterSetWithMembers | null;
+  if (!data) return null;
+  return mapSetRow(data);
 }
 
 export async function createSet(
