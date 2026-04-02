@@ -1,0 +1,18 @@
+export {
+  getAllSets,
+  getSet,
+  createSet,
+  updateSet,
+  deleteSet,
+  addMember,
+  updateMember,
+  removeMember,
+  evaluateCondition,
+  getQualifyingSetIds,
+  getEligibleCreatures,
+  type EncounterSetWithMembers,
+  type EncounterSetMemberWithBadge,
+  type EligibleCreature,
+  type ConditionContext,
+  type Condition,
+} from "@/app/lib/services/encounter-sets/encounter-sets.service";

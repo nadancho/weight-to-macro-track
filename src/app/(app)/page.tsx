@@ -169,7 +169,14 @@ export default function HomePage() {
     setMessage({ type: "ok", text: "Saved." });
     // Pawprint animation: admin sees it every save, others on first log of the day
     if (userId === ADMIN_UUID || !loggedDates.has(date)) {
-      window.dispatchEvent(new CustomEvent("woodland:save"));
+      window.dispatchEvent(new CustomEvent("woodland:save", {
+        detail: {
+          protein_g: protein_g ? Number(protein_g) : null,
+          fat_g: fat_g ? Number(fat_g) : null,
+          carbs_g: carbs_g ? Number(carbs_g) : null,
+          weight,
+        },
+      }));
     }
 
     // Fire and forget — cache updates optimistically, API persists in background

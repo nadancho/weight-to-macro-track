@@ -490,6 +490,7 @@ function WoodlandScene() {
   const fadeoutTimer = useRef<ReturnType<typeof setTimeout>>();
   const leafTimer = useRef<ReturnType<typeof setTimeout>>();
   const revealPromiseRef = useRef<Promise<{ animation: RevealAnimation | null; firstEncounter: boolean }> | null>(null);
+  const logDataRef = useRef<{ protein_g?: number | null; fat_g?: number | null; carbs_g?: number | null; weight?: number | null } | undefined>();
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -509,7 +510,9 @@ function WoodlandScene() {
 
   // Listen for save events
   useEffect(() => {
-    function onSave() {
+    function onSave(e: Event) {
+      const detail = (e as CustomEvent).detail;
+      logDataRef.current = detail ?? undefined;
       setPhase((current) => {
         // Only trigger from idle — don't interrupt an in-progress sequence
         if (current !== "idle") return current;
@@ -527,7 +530,9 @@ function WoodlandScene() {
     clearTimers();
     revealPromiseRef.current = fetch("/api/reveal/roll", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       credentials: "include",
+      body: JSON.stringify({ log: logDataRef.current }),
     })
       .then((res) => (res.ok ? res.json() : { animation: null, firstEncounter: false }))
       .catch(() => ({ animation: null, firstEncounter: false }));

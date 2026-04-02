@@ -1,21 +1,24 @@
-import { createClient } from "@/app/lib/integrations/supabase/server";
 import { createAdminClient } from "@/app/lib/integrations/supabase/admin";
+import { getUserAttributeMap } from "@/app/lib/modules/profile-attributes";
+import {
+  getQualifyingSetIds,
+  getEligibleCreatures,
+  type ConditionContext,
+} from "@/app/lib/modules/encounter-sets";
 import type { SpriteAnimationRow } from "@/app/lib/services/animations/animations.service";
 
+// --- Tier odds (fixed constants) ---
+
+const TIER_ODDS: Record<string, number> = {
+  common: 35,
+  rare: 20,
+  epic: 12,
+  unique: 5,
+  legendary: 3,
+  // nothing: 25 (implicit remainder, total = 75)
+};
+
 // --- Types ---
-
-export interface RevealOddsEntry {
-  id: string;
-  animation_id: string;
-  weight: number;
-  created_at: string;
-  animation: SpriteAnimationRow;
-}
-
-export interface RevealOddsInput {
-  animation_id: string;
-  weight: number;
-}
 
 export interface RevealLogRow {
   id: string;
@@ -26,100 +29,93 @@ export interface RevealLogRow {
   created_at: string;
 }
 
-// --- Read odds (authenticated) ---
-
-export async function getRevealOdds(): Promise<RevealOddsEntry[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("reveal_odds")
-    .select("*, sprite_animations(*)")
-    .order("weight", { ascending: false });
-
-  if (error) throw new Error(error.message);
-  if (!data) return [];
-
-  return data.map((row: Record<string, unknown>) => ({
-    id: row.id as string,
-    animation_id: row.animation_id as string,
-    weight: Number(row.weight),
-    created_at: row.created_at as string,
-    animation: row.sprite_animations as unknown as SpriteAnimationRow,
-  }));
-}
-
-// --- Admin: replace odds table ---
-
-export async function setRevealOdds(entries: RevealOddsInput[]): Promise<void> {
-  const total = entries.reduce((sum, e) => sum + e.weight, 0);
-  if (total > 100) {
-    throw new Error(`Total weight ${total}% exceeds 100%`);
-  }
-
-  const admin = createAdminClient();
-
-  // Delete all existing, then insert new — simple full replace
-  const { error: delError } = await admin
-    .from("reveal_odds")
-    .delete()
-    .neq("id", "00000000-0000-0000-0000-000000000000"); // delete all rows
-
-  if (delError) throw new Error(delError.message);
-
-  if (entries.length > 0) {
-    const { error: insError } = await admin
-      .from("reveal_odds")
-      .insert(entries.map((e) => ({
-        animation_id: e.animation_id,
-        weight: e.weight,
-      })) as never);
-
-    if (insError) throw new Error(insError.message);
-  }
-}
-
-// --- Roll reveal (server-side) ---
-
 export interface RevealResult {
   animation: SpriteAnimationRow;
   firstEncounter: boolean;
 }
 
-/** Roll the reveal table — pure dice roll, no audit. */
-export async function rollReveal(userId: string): Promise<RevealResult | null> {
-  const odds = await getRevealOdds();
-  if (odds.length === 0) return null;
+export interface EventData {
+  protein_g?: number | null;
+  fat_g?: number | null;
+  carbs_g?: number | null;
+  weight?: number | null;
+}
 
+// --- Two-stage roll ---
+
+export async function rollReveal(
+  userId: string,
+  eventData?: EventData,
+): Promise<RevealResult | null> {
+  // 1. Load user profile attributes
+  const attributes = await getUserAttributeMap(userId);
+
+  // 2. Build evaluation context
+  const context: ConditionContext = { attributes, event: eventData };
+
+  // 3. Get qualifying encounter sets
+  const qualifyingSetIds = await getQualifyingSetIds(context);
+  if (qualifyingSetIds.length === 0) return null;
+
+  // 4. Tier roll
   const roll = Math.random() * 100;
   let cumulative = 0;
-  let winner: RevealOddsEntry | null = null;
+  let winningTier: string | null = null;
 
-  for (const entry of odds) {
-    cumulative += entry.weight;
+  for (const [tier, weight] of Object.entries(TIER_ODDS)) {
+    cumulative += weight;
     if (roll < cumulative) {
-      winner = entry;
+      winningTier = tier;
       break;
     }
   }
 
-  if (!winner) return null;
+  if (!winningTier) return null; // landed in "nothing" (25%)
 
-  // Check first encounter (read-only, no write yet)
-  const admin = createAdminClient();
-  const creatureId = winner.animation.creature_id;
-  let firstEncounter = false;
-  if (creatureId) {
-    const { count } = await admin
-      .from("reveal_log")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("creature_id", creatureId);
-    firstEncounter = (count ?? 0) === 0;
+  // 5. Get eligible creatures for this tier
+  const creatures = await getEligibleCreatures(qualifyingSetIds, winningTier);
+  if (creatures.length === 0) return null; // no creatures in this tier
+
+  // 6. Weighted random selection within tier
+  const totalWeight = creatures.reduce((sum, c) => sum + c.weight, 0);
+  const creatureRoll = Math.random() * totalWeight;
+  let creatureCumulative = 0;
+  let winner = creatures[0];
+
+  for (const creature of creatures) {
+    creatureCumulative += creature.weight;
+    if (creatureRoll < creatureCumulative) {
+      winner = creature;
+      break;
+    }
   }
 
-  return { animation: winner.animation, firstEncounter };
+  // 7. Look up a sprite animation for this creature
+  const admin = createAdminClient();
+  const { data: animData } = await admin
+    .from("sprite_animations")
+    .select("*")
+    .eq("creature_id", winner.badge_id)
+    .limit(1)
+    .maybeSingle();
+
+  if (!animData) return null; // creature has no animation
+  const animation = animData as unknown as SpriteAnimationRow;
+
+  // 8. Check first encounter
+  let firstEncounter = false;
+  const { count } = await admin
+    .from("reveal_log")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("creature_id", winner.badge_id);
+  firstEncounter = (count ?? 0) === 0;
+
+  return { animation, firstEncounter };
 }
 
-/** Log the encounter — call only when the user actually sees the creature. */
+// --- Log encounter (unchanged) ---
+
 export async function logEncounter(
   userId: string,
   animationId: string,
@@ -135,11 +131,11 @@ export async function logEncounter(
   } as never);
 }
 
-// --- Read user encounters ---
+// --- Read user encounters (unchanged) ---
 
 export async function getUserEncounters(userId: string): Promise<RevealLogRow[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
+  const admin = createAdminClient();
+  const { data } = await admin
     .from("reveal_log")
     .select("*")
     .eq("user_id", userId)

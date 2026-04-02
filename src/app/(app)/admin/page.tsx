@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/components/auth-provider";
 import { ADMIN_UUID } from "@/app/lib/constants";
-import { Dices, Film, Shield } from "lucide-react";
+import { Database, Film, Layers, Shield } from "lucide-react";
 import Link from "next/link";
 
 const adminLinks = [
@@ -13,10 +13,16 @@ const adminLinks = [
     description: "Manage creature animation sheets, frame sequences, and offsets",
   },
   {
-    href: "/admin/reveal",
-    icon: Dices,
-    label: "Creature Reveal Odds",
-    description: "Configure probability table for save celebration creature reveals",
+    href: "/admin/encounter-sets",
+    icon: Layers,
+    label: "Encounter Sets",
+    description: "Configure creature pools and conditions for the two-stage reveal system",
+  },
+  {
+    href: "/admin/profile-attributes",
+    icon: Database,
+    label: "Profile Attributes",
+    description: "Define computed user attributes used by encounter set conditions",
   },
 ] as const;
 

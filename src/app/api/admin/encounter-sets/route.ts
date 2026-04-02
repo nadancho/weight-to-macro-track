@@ -1,16 +1,17 @@
 import { createClient } from "@/app/lib/integrations/supabase/server";
 import { ADMIN_UUID } from "@/app/lib/constants";
-import { getRevealOdds, setRevealOdds } from "@/app/lib/modules/reveal";
+import { getAllSets, createSet } from "@/app/lib/modules/encounter-sets";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-const putSchema = z.object({
-  entries: z.array(
-    z.object({
-      animation_id: z.string().min(1),
-      weight: z.number().gt(0).lte(100),
-    }),
-  ),
+const createSchema = z.object({
+  name: z.string().min(1),
+  condition: z.object({
+    source: z.enum(["attribute", "event"]),
+    key: z.string().min(1),
+    operator: z.enum(["eq", "gt", "gte", "lt", "lte", "exists"]),
+    value: z.union([z.number(), z.boolean(), z.string()]).optional(),
+  }).nullable().optional(),
 });
 
 export async function GET() {
@@ -20,18 +21,11 @@ export async function GET() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  try {
-    const odds = await getRevealOdds();
-    return NextResponse.json(odds);
-  } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to fetch odds" },
-      { status: 500 },
-    );
-  }
+  const sets = await getAllSets();
+  return NextResponse.json(sets);
 }
 
-export async function PUT(request: Request) {
+export async function POST(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user || user.id !== ADMIN_UUID) {
@@ -39,7 +33,7 @@ export async function PUT(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
-  const parsed = putSchema.safeParse(body);
+  const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Invalid body", details: parsed.error.flatten() },
@@ -48,11 +42,14 @@ export async function PUT(request: Request) {
   }
 
   try {
-    await setRevealOdds(parsed.data.entries);
-    return NextResponse.json({ ok: true });
+    const set = await createSet({
+      name: parsed.data.name,
+      condition: parsed.data.condition ?? null,
+    });
+    return NextResponse.json(set, { status: 201 });
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to save odds" },
+      { error: err instanceof Error ? err.message : "Failed to create set" },
       { status: 500 },
     );
   }

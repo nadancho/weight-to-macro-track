@@ -1,14 +1,11 @@
 export {
-  getRevealOdds,
-  setRevealOdds,
   rollReveal,
   logEncounter,
   getUserEncounters,
 } from "@/app/lib/services/reveal/reveal.service";
 
 export type {
-  RevealOddsEntry,
-  RevealOddsInput,
   RevealResult,
   RevealLogRow,
+  EventData,
 } from "@/app/lib/services/reveal/reveal.service";

@@ -2,6 +2,7 @@ import {
   createOrUpdateDailyLog,
   getLogsByDateRange,
 } from "@/app/lib/modules/logs";
+import { emit } from "@/app/lib/services/events";
 import { createClient } from "@/app/lib/integrations/supabase/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -59,5 +60,9 @@ export async function POST(request: Request) {
   if (!log) {
     return NextResponse.json({ error: "Failed to save log" }, { status: 500 });
   }
+
+  // Update profile attributes (streak, totals, etc.) — fire and forget
+  emit("log:saved", { userId: user.id, log }).catch(() => {});
+
   return NextResponse.json(log);
 }
